@@ -7,27 +7,25 @@ import os
 import subprocess
 import sys
 
-if sys.hexversion >= 0x03000000:
-    s = lambda x: x.decode("utf8")
-    utc = datetime.timezone.utc
-else:
-    s = lambda x: x
-    class UTC(datetime.tzinfo):
-        def utcoffset(self, dt):
-            return datetime.timedelta(0)
-        def tzname(self, dt):
-            return "UTC"
-        def dst(self, dt):
-            return datetime.timedelta(0)
-    utc = UTC()
+if sys.hexversion <= 0x03050000:
+    raise NotImplementedError("This script requires python 3.5+")
+
+s = lambda x: x.decode("utf8")
+utc = datetime.timezone.utc
 
 this_dir = os.path.abspath(os.path.dirname(__file__))
 outfile = os.path.join(this_dir, 'src/main/RevisionInfo.kt')
 
-p = subprocess.Popen(['hg', 'id', '-i'], stdout=subprocess.PIPE)
-(stdout, _) = p.communicate()
+try:
+    p = subprocess.run(['hg', 'id', '-i'], stdout=subprocess.PIPE)
+    changeset = s(p.stdout).strip()
+except (subprocess.CalledProcessError, FileNotFoundError):
+    # hg wasn't found or didn't work.  Try git
+    p = subprocess.run(['git', 'rev-parse', 'HEAD'],
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                check=True, encoding='utf8')
+    changeset = 'git-' + p.stdout.strip()
 
-changeset = s(stdout).strip()
 dtn = datetime.datetime.now(utc)
 
 kotlin_string = """package uk.co.cgtk.karpcalc
