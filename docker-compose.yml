@@ -1,0 +1,7 @@
+version: "2"
+services:
+    kotlin_arpcalc_build:
+        build: dockerfiles/kotlin
+        volumes:
+            - ./:/home/al/project
+            - /home/vcs/mercurial/development/software/other/development/keystore:/vcs/keystore

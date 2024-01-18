@@ -1,0 +1,15 @@
+.gradle
+*/local.properties
+*/.idea
+.DS_Store
+*.iml
+build
+app/phone/build
+local.properties
+RevisionInfo.kt
+keystore.properties
+.idea
+.*.swp
+.qmake.stash
+*_plugin_import.cpp
+.hg
