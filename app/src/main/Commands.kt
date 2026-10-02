@@ -591,7 +591,7 @@ class CommandHandler(
 		if (key.length == 1) {
 			when (key[0]) {
 				in '0'..'9' -> numInput(key)
-				in 'A'..'D', in 'a'..'d', 'f', 'F' -> hexInput(key.toUpperCase())
+				in 'A'..'D', in 'a'..'d', 'f', 'F' -> hexInput(key.uppercase())
 				'E', 'e' -> {
 					//println("E pressed")
 					if (isDecimal()) {
@@ -812,7 +812,7 @@ class CommandHandler(
 			if ( ! isX) {
 				asLong = asLong and mask
 			}
-			formatted = "${asLong.toString(bn)}".toUpperCase()
+			formatted = "${asLong.toString(bn)}".uppercase()
 		}
 		else {
 			var absolute = Math.abs(asLong)
@@ -820,7 +820,7 @@ class CommandHandler(
 			if ( ! isX) {
 				twoscomp = twoscomp and mask
 			}
-			formatted = "${twoscomp.toString(bn)}".toUpperCase()
+			formatted = "${twoscomp.toString(bn)}".uppercase()
 		}
 		if (base == DisplayBase.baseBinary) {
 			while ((formatted.length % 4) != 0) {
@@ -1058,7 +1058,7 @@ class CommandHandler(
 	}
 
 	fun powerExponent(preformatted: String, isX: Boolean): String {
-		var parts = preformatted.toLowerCase().split("e")
+		var parts = preformatted.lowercase().split("e")
 		if (parts.size > 1) {
 			var exponentPart: String = parts[1]
 			var coefficientPart: String = parts[0]

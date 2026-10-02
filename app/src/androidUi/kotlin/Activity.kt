@@ -1,12 +1,18 @@
 package uk.co.cgtk.karpcalc
 
-import android.os.Build
 import android.os.Bundle
 import android.content.ClipboardManager
 import android.content.ClipData
 import android.content.Context
+import android.content.DialogInterface
 import android.content.SharedPreferences
-import android.support.v7.app.AppCompatActivity
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import android.graphics.drawable.Drawable
 import android.text.Html
 import android.text.Spanned
@@ -20,10 +26,10 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
-import org.jetbrains.anko.*
 import android.view.ViewGroup.LayoutParams
-import com.github.kittinunf.fuel.*
-import com.github.kittinunf.fuel.core.FuelManager
+import java.net.HttpURLConnection
+import java.net.URI
+import kotlin.concurrent.thread
 
 val UndefinedRow = GridLayout.UNDEFINED
 val UndefinedColumn = GridLayout.UNDEFINED
@@ -53,19 +59,31 @@ class MainActivity : AppCompatActivity() {
 	var lastStoreTab: String = "romanupperpad"
 	var optIcons: MutableMap<String, ImageView> = mutableMapOf()
 
-	@Suppress("DEPRECATION")
 	fun fromHtml(h: String): Spanned {
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-			return Html.fromHtml(h, Html.FROM_HTML_MODE_LEGACY);
-		} else {
-			return Html.fromHtml(h);
-		}
+		return Html.fromHtml(h, Html.FROM_HTML_MODE_LEGACY)
 	}
 
 	override fun onCreate(savedInstanceState: Bundle?) {
+		enableEdgeToEdge()
 		super.onCreate(savedInstanceState)
 		mainUI = MainActivityUi()
-		mainUI.setContentView(this)
+		var root = mainUI.createView(this)
+		setContentView(root)
+
+		// Keep the calculator clear of the status bar, navigation bar and
+		// any display cutout (apps are always drawn edge-to-edge on Android 15+)
+		ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
+			var bars = insets.getInsets(WindowInsetsCompat.Type.systemBars()
+					or WindowInsetsCompat.Type.displayCutout())
+			v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+			WindowInsetsCompat.CONSUMED
+		}
+
+		onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+			override fun handleOnBackPressed() {
+				backPressed()
+			}
+		})
 
 		buttons = listOf(
 			listOf(mainUI.b00, mainUI.b01, mainUI.b02, mainUI.b03, mainUI.b04, mainUI.b05),
@@ -101,20 +119,38 @@ class MainActivity : AppCompatActivity() {
 	}
 
 	fun getCurrencyData() {
-		FuelManager.instance.basePath = "http://www.ecb.int"
+		val currencyUrl = "https://www.ecb.europa.eu/stats/eurofxref/eurofxref.zip"
 
-		// responseString instead of response for String? data
-		// first two parameters are request and response, but
-		// renamed as _ as not used
-		"/stats/eurofxref/eurofxref.zip".httpGet().response { _, _, result ->
-			val (data, error) = result
-			if ((error == null) && (data != null)) {
-				var processing_error = calc.processCurrencyData(data);
-				if (processing_error.length > 0) {
-					showToast(processing_error)
+		// Network access isn't permitted on the UI thread
+		thread {
+			var data: ByteArray? = null
+			try {
+				var connection = URI(currencyUrl).toURL().openConnection() as HttpURLConnection
+				connection.connectTimeout = 15000
+				connection.readTimeout = 15000
+				try {
+					if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+						data = connection.inputStream.use { it.readBytes() }
+					}
 				}
-			} else {
-				//error handling
+				finally {
+					connection.disconnect()
+				}
+			}
+			catch (e: Exception) {
+				Log.w(TAG, "Failed to download currency data", e)
+			}
+
+			val bytes = data
+			if (bytes != null) {
+				runOnUiThread {
+					if (! isFinishing) {
+						var processing_error = calc.processCurrencyData(bytes)
+						if (processing_error.length > 0) {
+							showToast(processing_error)
+						}
+					}
+				}
 			}
 		}
 	}
@@ -129,11 +165,11 @@ class MainActivity : AppCompatActivity() {
 		return true
 	}
 
-	override fun onBackPressed() {
+	fun backPressed() {
 		if (lastTab == "numpad") {
 			saveSettings()
 			saveStack()
-			java.lang.System.exit(0)
+			finish()
 		}
 		else {
 			cancelPressed()
@@ -187,7 +223,7 @@ class MainActivity : AppCompatActivity() {
 		calc.setOption(CalcOpt.PercentLeavesY, prefs.getBoolean("PercentLeavesY", true))
 
 		if (calc.getOption(DispOpt.SaveBaseOnExit)) {
-			calc.setStatusBase(prefs.getString("SavedBase", "DEC"))
+			calc.setStatusBase(prefs.getString("SavedBase", "DEC") ?: "DEC")
 		}
 		else {
 			calc.setStatusBase("DEC")
@@ -198,7 +234,7 @@ class MainActivity : AppCompatActivity() {
 		var cMap: MutableMap<String, Double> = mutableMapOf()
 		for (key in vs.keys) {
 			if (key.startsWith("VARSTORE-")) {
-				var value = prefs.getString(key, "0.0")
+				var value = prefs.getString(key, "0.0") ?: "0.0"
 				vMap[key.drop(9)] = A(value)
 			}
 			else if (key.startsWith("CURRENCY-")) {
@@ -207,7 +243,7 @@ class MainActivity : AppCompatActivity() {
 				cMap[key.drop(9)] = value
 			}
 			else if (key == "CURRENCYDATE") {
-				calc.last_currency_date = prefs.getString(key, "")
+				calc.last_currency_date = prefs.getString(key, "") ?: ""
 			}
 		}
 		calc.loadVarStore(vMap.toMap())
@@ -292,6 +328,7 @@ class MainActivity : AppCompatActivity() {
 		for ((index, value) in storeStack.withIndex()) {
 			edit.putString("SavedStack-%03d".format(index), value.toString())
 		}
+		edit.apply()
 	}
 
 	fun restoreStack() {
@@ -300,7 +337,7 @@ class MainActivity : AppCompatActivity() {
 
 		for (index in 0..(stackSize-1)) {
 			/* Bypass history stuff */
-			var lv = prefs.getString("SavedStack-%03d".format(index), "0.0")
+			var lv = prefs.getString("SavedStack-%03d".format(index), "0.0") ?: "0.0"
 			var v: AF = A(lv)
 			calc.st.push(v)
 		}
@@ -332,6 +369,13 @@ class MainActivity : AppCompatActivity() {
 		var t = Toast.makeText(this, fromHtml(html), len)
 		t.setGravity(Gravity.TOP or Gravity.CENTER_HORIZONTAL, 0, 0)
 		t.show()
+	}
+
+	fun selector(title: String, items: List<String>, onClick: (DialogInterface, Int) -> Unit) {
+		AlertDialog.Builder(this)
+			.setTitle(title)
+			.setItems(items.toTypedArray()) { dialog, which -> onClick(dialog, which) }
+			.show()
 	}
 
 	fun selectToUnit(category: String, from: String) {
@@ -662,14 +706,8 @@ class MainActivity : AppCompatActivity() {
 		mainUI.lytOptionsPage2.setVisibility(View.VISIBLE)
 	}
 
-	@Suppress("DEPRECATION")
-	fun getIcon(v: Int): Drawable {
-		if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-			return getApplicationContext().getDrawable(v)
-		}
-		else {
-			return getResources().getDrawable(v)
-		}
+	fun getIcon(v: Int): Drawable? {
+		return ContextCompat.getDrawable(this, v)
 	}
 
 	fun optionClicked(name: String): Boolean {

@@ -1,21 +1,21 @@
 package uk.co.cgtk.karpcalc
 
-import android.graphics.Color
+import android.content.Context
 import android.text.method.ScrollingMovementMethod
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.GridLayout
 import android.widget.ScrollView
 import android.widget.TextView
-import org.jetbrains.anko.*
 import android.view.ViewGroup.LayoutParams
-import org.jetbrains.anko.sdk25.coroutines.onClick
 
-class MainActivityUi : AnkoComponent<MainActivity> {
-	private val mainStyle = { v: Any ->
+class MainActivityUi {
+	private val mainStyle = { v: View ->
 		when (v) {
 			is Button -> {
 				var params = LinearLayout.LayoutParams(0, LayoutParams.MATCH_PARENT, 0.16f)
@@ -25,11 +25,11 @@ class MainActivityUi : AnkoComponent<MainActivity> {
 				params.rightMargin = 0
 				v.setLayoutParams(params)
 				v.textSize = 12f
-				v.padding = 0
+				v.setPadding(0, 0, 0, 0)
 				v.setAllCaps(false)
 			}
 			is TextView -> {
-				if (v.getText() == "") {
+				if (v.getText().isEmpty()) {
 					v.setHorizontallyScrolling(true)
 					v.setHorizontalScrollBarEnabled(true)
 					v.setScrollbarFadingEnabled(true)
@@ -41,7 +41,7 @@ class MainActivityUi : AnkoComponent<MainActivity> {
 			}
 		}
 	}
-	private val tabStyle = { v: Any ->
+	private val tabStyle = { v: View ->
 		when (v) {
 			is ImageView -> {
 				var params = LinearLayout.LayoutParams(0, LayoutParams.MATCH_PARENT, 20f)
@@ -82,149 +82,117 @@ class MainActivityUi : AnkoComponent<MainActivity> {
 	lateinit var imConstPad: ImageView
 	lateinit var imOptPad: ImageView
 
-	override fun createView(ui: AnkoContext<MainActivity>) = with(ui) {
-		verticalLayout {
-			linearLayout {
-				orientation = LinearLayout.HORIZONTAL
+	private val matchParent = LayoutParams.MATCH_PARENT
 
-				txtStatusExponent = textView {
-					gravity = Gravity.CENTER
-					text = "EXP:10"
-				}.lparams(height = matchParent, width = 0) {
-					weight = 20f
-				}
-				view {
-				}.lparams(height = matchParent, width = 0) {
-					weight = 20f
-				}
-				txtStatusAngular = textView {
-					gravity = Gravity.CENTER
-					text = "DEG"
-				}.lparams(height = matchParent, width = 0) {
-					weight = 20f
-				}
-				view {
-				}.lparams(height = matchParent, width = 0) {
-					weight = 20f
-				}
-				txtStatusBase = textView {
-					gravity = Gravity.CENTER
-					text = "DEC"
-				}.lparams(height = matchParent, width = 0) {
-					weight = 20f
-				}
-			}.lparams (width = matchParent, height = 0) {
-				weight = 5f
+	/* Small helpers to keep the layout code below readable */
+	private fun <T : View> ViewGroup.add(view: T, params: LayoutParams? = null): T {
+		if (params == null) {
+			addView(view)
+		}
+		else {
+			addView(view, params)
+		}
+		return view
+	}
+
+	private fun weighted(width: Int, height: Int, weight: Float) =
+		LinearLayout.LayoutParams(width, height, weight)
+
+	private fun linearLayout(ctx: Context, orient: Int) = LinearLayout(ctx).apply {
+		orientation = orient
+	}
+
+	private fun statusText(ctx: Context, initial: String) = TextView(ctx).apply {
+		gravity = Gravity.CENTER
+		text = initial
+	}
+
+	private fun tabImage(ctx: Context, resource: Int, onClick: () -> Unit) = ImageView(ctx).apply {
+		setImageResource(resource)
+		setOnClickListener { onClick() }
+	}
+
+	private fun buttonRow(ctx: Context): Pair<LinearLayout, List<Button>> {
+		var row = linearLayout(ctx, LinearLayout.HORIZONTAL)
+		var rowButtons = List(6) { row.add(Button(ctx)) }
+		return Pair(row, rowButtons)
+	}
+
+	private fun applyRecursively(v: View, style: (View) -> Unit) {
+		style(v)
+		if (v is ViewGroup) {
+			for (i in 0 until v.childCount) {
+				applyRecursively(v.getChildAt(i), style)
 			}
-			linearLayout {
-				orientation = LinearLayout.HORIZONTAL
-				verticalLayout {
-					stackScroll = scrollView {
-						txtStack = textView {
-							gravity = Gravity.BOTTOM or Gravity.LEFT
-							//lineSpacingMultiplier = 1.2f
-							//backgroundColor = Color.WHITE
-						}.lparams (width = matchParent, height = matchParent)
-					}.lparams (width = matchParent, height = matchParent)
-				}.lparams (height = matchParent, width = 0) {
-					weight = 40f
-				}
-				verticalLayout {
-				}.lparams (height = matchParent, width = 0) {
-					weight = 5f
-				}
-				txtBase = textView {
-					gravity = Gravity.TOP or Gravity.LEFT
-					//backgroundColor = Color.GREEN
-				}.lparams (height = matchParent, width = 0) {
-					weight = 55f
-				}
-			}.lparams (width = matchParent, height = 0) {
-				weight = 25f
-			}
+		}
+	}
 
-			txtEntry = textView {
-				textSize = 25f
-				gravity = Gravity.BOTTOM or Gravity.RIGHT
-				text = ""
-				singleLine = true
-			}.lparams(height = sp(40f), width = matchParent)
+	fun createView(owner: MainActivity): View {
+		val ctx: Context = owner
+		var root = linearLayout(ctx, LinearLayout.VERTICAL)
 
-			linearLayout {
-				orientation = LinearLayout.HORIZONTAL
-				imNumPad   = imageView(R.drawable.numpad)   { onClick { ui.owner.tabSelect("numpad") } }
-				imFuncPad  = imageView(R.drawable.funcpad)  { onClick { ui.owner.tabSelect("funcpad") } }
-				imConvPad  = imageView(R.drawable.convpad)  { onClick { ui.owner.tabSelect("convpad") } }
-				imConstPad = imageView(R.drawable.constpad) { onClick { ui.owner.tabSelect("constpad") } }
-				imOptPad   = imageView(R.drawable.optpad)   { onClick { ui.owner.tabSelect("optpad1") } }
-			}.lparams(width = matchParent, height = 0) {
-				weight = 12f
-			}.applyRecursively(tabStyle)
-			
-			lytButtons = verticalLayout {
-				linearLayout {
-					orientation = LinearLayout.HORIZONTAL
-					b00 = button("")
-					b01 = button("")
-					b02 = button("")
-					b03 = button("")
-					b04 = button("")
-					b05 = button("")
-				}.lparams(width = matchParent, height = 0) { weight = 0.16f }
-				linearLayout {
-					orientation = LinearLayout.HORIZONTAL
-					b10 = button("")
-					b11 = button("")
-					b12 = button("")
-					b13 = button("")
-					b14 = button("")
-					b15 = button("")
-				}.lparams(width = matchParent, height = 0) { weight = 0.16f }
-				linearLayout {
-					orientation = LinearLayout.HORIZONTAL
-					b20 = button("")
-					b21 = button("")
-					b22 = button("")
-					b23 = button("")
-					b24 = button("")
-					b25 = button("")
-				}.lparams(width = matchParent, height = 0) { weight = 0.16f }
-				linearLayout {
-					orientation = LinearLayout.HORIZONTAL
-					b30 = button("")
-					b31 = button("")
-					b32 = button("")
-					b33 = button("")
-					b34 = button("")
-					b35 = button("")
-				}.lparams(width = matchParent, height = 0) { weight = 0.16f }
-				linearLayout {
-					orientation = LinearLayout.HORIZONTAL
-					b40 = button("")
-					b41 = button("")
-					b42 = button("")
-					b43 = button("")
-					b44 = button("")
-					b45 = button("")
-				}.lparams(width = matchParent, height = 0) { weight = 0.16f }
-				linearLayout {
-					orientation = LinearLayout.HORIZONTAL
-					b50 = button("")
-					b51 = button("")
-					b52 = button("")
-					b53 = button("")
-					b54 = button("")
-					b55 = button("")
-				}.lparams(width = matchParent, height = 0) { weight = 0.16f }
-			}.lparams(width = matchParent, height = 0) { weight = 48f }
+		var statusLine = root.add(linearLayout(ctx, LinearLayout.HORIZONTAL),
+				weighted(matchParent, 0, 5f))
+		txtStatusExponent = statusLine.add(statusText(ctx, "EXP:10"), weighted(0, matchParent, 20f))
+		statusLine.add(View(ctx), weighted(0, matchParent, 20f))
+		txtStatusAngular = statusLine.add(statusText(ctx, "DEG"), weighted(0, matchParent, 20f))
+		statusLine.add(View(ctx), weighted(0, matchParent, 20f))
+		txtStatusBase = statusLine.add(statusText(ctx, "DEC"), weighted(0, matchParent, 20f))
 
-			lytOptionsPage1 = verticalLayout {
-				visibility = View.GONE
-			}.lparams(width = matchParent, height = 0) { weight = 48f }
+		var displayArea = root.add(linearLayout(ctx, LinearLayout.HORIZONTAL),
+				weighted(matchParent, 0, 25f))
+		var stackHolder = displayArea.add(linearLayout(ctx, LinearLayout.VERTICAL),
+				weighted(0, matchParent, 40f))
+		stackScroll = stackHolder.add(ScrollView(ctx), LinearLayout.LayoutParams(matchParent, matchParent))
+		txtStack = stackScroll.add(TextView(ctx).apply {
+			gravity = Gravity.BOTTOM or Gravity.LEFT
+		}, FrameLayout.LayoutParams(matchParent, matchParent))
+		displayArea.add(linearLayout(ctx, LinearLayout.VERTICAL), weighted(0, matchParent, 5f))
+		txtBase = displayArea.add(TextView(ctx).apply {
+			gravity = Gravity.TOP or Gravity.LEFT
+		}, weighted(0, matchParent, 55f))
 
-			lytOptionsPage2 = verticalLayout {
-				visibility = View.GONE
-			}.lparams(width = matchParent, height = 0) { weight = 48f }
-		}.applyRecursively(mainStyle)
+		var entryHeight = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 40f,
+				ctx.resources.displayMetrics).toInt()
+		txtEntry = root.add(TextView(ctx).apply {
+			textSize = 25f
+			gravity = Gravity.BOTTOM or Gravity.RIGHT
+			text = ""
+			setSingleLine(true)
+		}, LinearLayout.LayoutParams(matchParent, entryHeight))
+
+		var tabs = root.add(linearLayout(ctx, LinearLayout.HORIZONTAL),
+				weighted(matchParent, 0, 12f))
+		imNumPad   = tabs.add(tabImage(ctx, R.drawable.numpad)   { owner.tabSelect("numpad") })
+		imFuncPad  = tabs.add(tabImage(ctx, R.drawable.funcpad)  { owner.tabSelect("funcpad") })
+		imConvPad  = tabs.add(tabImage(ctx, R.drawable.convpad)  { owner.tabSelect("convpad") })
+		imConstPad = tabs.add(tabImage(ctx, R.drawable.constpad) { owner.tabSelect("constpad") })
+		imOptPad   = tabs.add(tabImage(ctx, R.drawable.optpad)   { owner.tabSelect("optpad1") })
+		applyRecursively(tabs, tabStyle)
+
+		lytButtons = root.add(linearLayout(ctx, LinearLayout.VERTICAL),
+				weighted(matchParent, 0, 48f))
+		var buttonRows = List(6) {
+			var (row, rowButtons) = buttonRow(ctx)
+			lytButtons.add(row, weighted(matchParent, 0, 0.16f))
+			rowButtons
+		}
+		b00 = buttonRows[0][0]; b01 = buttonRows[0][1]; b02 = buttonRows[0][2]; b03 = buttonRows[0][3]; b04 = buttonRows[0][4]; b05 = buttonRows[0][5]
+		b10 = buttonRows[1][0]; b11 = buttonRows[1][1]; b12 = buttonRows[1][2]; b13 = buttonRows[1][3]; b14 = buttonRows[1][4]; b15 = buttonRows[1][5]
+		b20 = buttonRows[2][0]; b21 = buttonRows[2][1]; b22 = buttonRows[2][2]; b23 = buttonRows[2][3]; b24 = buttonRows[2][4]; b25 = buttonRows[2][5]
+		b30 = buttonRows[3][0]; b31 = buttonRows[3][1]; b32 = buttonRows[3][2]; b33 = buttonRows[3][3]; b34 = buttonRows[3][4]; b35 = buttonRows[3][5]
+		b40 = buttonRows[4][0]; b41 = buttonRows[4][1]; b42 = buttonRows[4][2]; b43 = buttonRows[4][3]; b44 = buttonRows[4][4]; b45 = buttonRows[4][5]
+		b50 = buttonRows[5][0]; b51 = buttonRows[5][1]; b52 = buttonRows[5][2]; b53 = buttonRows[5][3]; b54 = buttonRows[5][4]; b55 = buttonRows[5][5]
+
+		lytOptionsPage1 = root.add(linearLayout(ctx, LinearLayout.VERTICAL).apply {
+			visibility = View.GONE
+		}, weighted(matchParent, 0, 48f))
+
+		lytOptionsPage2 = root.add(linearLayout(ctx, LinearLayout.VERTICAL).apply {
+			visibility = View.GONE
+		}, weighted(matchParent, 0, 48f))
+
+		applyRecursively(root, mainStyle)
+		return root
 	}
 }

@@ -77,9 +77,13 @@ This software is released under the GPL.  See [LICENCE.md](LICENCE.md) for more 
 
 ## Docker Compilation
 
-The release builds are compiled with docker-compose.
+The release builds are compiled with Docker (using the `docker compose` plugin).
 
-To build the docker containers on a Linux system, run `docker-compose build`.  The code can then be compiled with `docker-compose up`.
+To build the docker containers on a Linux system, run `docker compose build`.  The code can then be compiled with `docker compose up`.
+
+The build produces a signed APK (`app/phone/build/outputs/apk/release/phone-release.apk`) and an Android App Bundle for Google Play (`app/phone/build/outputs/bundle/release/phone-release.aab`).  If `keystore.properties` is not present, the release outputs are left unsigned.
+
+Outside docker, the build needs JDK 17 or later and the Android SDK (platform 36); run `./gradlew build assembleRelease bundleRelease`.  The unit conversion tests need `python` with the `pint` module installed.
 
 Formal releases are tagged with the Mercurial repository changeset.  Building from the github version will use a git changeset instead.
 

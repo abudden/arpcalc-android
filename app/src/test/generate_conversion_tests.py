@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import argparse
 import os
@@ -14,8 +14,8 @@ def get_unit_mapping():
             "Angstroms": u.angstrom,
             "Atmosphere": u.atmosphere,
             "Bar": u.bar,
-            "British Thermal Units": u.btu,
-            "BTUs Per Hour": u.btu / u.hour,
+            "British Thermal Units": u.BTU,
+            "BTUs Per Hour": u.BTU / u.hour,
             "Bytes": u.byte,
             "Calories Per Second": u.calorie / u.second,
             "Calories": u.calorie,
@@ -101,7 +101,7 @@ def get_unit_mapping():
             "Millimetres": u.millimetre,
             "Millinewtons": u.millinewton,
             "Milliseconds": u.millisecond,
-            "Mils": u.mil,
+            "Mils": u.thou,
             "Minutes": u.minute,
             "Nanometres": u.nanometre,
             "Nanoseconds": u.nanosecond,
