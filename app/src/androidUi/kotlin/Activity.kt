@@ -5,8 +5,10 @@ import android.os.Bundle
 import android.content.ClipboardManager
 import android.content.ClipData
 import android.content.Context
+import android.content.DialogInterface
 import android.content.SharedPreferences
-import android.support.v7.app.AppCompatActivity
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import android.graphics.drawable.Drawable
 import android.text.Html
 import android.text.Spanned
@@ -20,10 +22,10 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
-import org.jetbrains.anko.*
 import android.view.ViewGroup.LayoutParams
-import com.github.kittinunf.fuel.*
-import com.github.kittinunf.fuel.core.FuelManager
+import java.net.HttpURLConnection
+import java.net.URL
+import kotlin.concurrent.thread
 
 val UndefinedRow = GridLayout.UNDEFINED
 val UndefinedColumn = GridLayout.UNDEFINED
@@ -101,20 +103,30 @@ class MainActivity : AppCompatActivity() {
 	}
 
 	fun getCurrencyData() {
-		FuelManager.instance.basePath = "http://www.ecb.int"
-
-		// responseString instead of response for String? data
-		// first two parameters are request and response, but
-		// renamed as _ as not used
-		"/stats/eurofxref/eurofxref.zip".httpGet().response { _, _, result ->
-			val (data, error) = result
-			if ((error == null) && (data != null)) {
-				var processing_error = calc.processCurrencyData(data);
-				if (processing_error.length > 0) {
-					showToast(processing_error)
+		thread {
+			var data: ByteArray? = null
+			try {
+				val conn = URL("https://www.ecb.europa.eu/stats/eurofxref/eurofxref.zip").openConnection() as HttpURLConnection
+				conn.connectTimeout = 15000
+				conn.readTimeout = 15000
+				try {
+					if (conn.responseCode == HttpURLConnection.HTTP_OK) {
+						data = conn.inputStream.use { it.readBytes() }
+					}
+				} finally {
+					conn.disconnect()
 				}
-			} else {
-				//error handling
+			} catch (e: java.io.IOException) {
+				Log.w(TAG, "Currency download failed", e)
+			}
+
+			if (data != null) {
+				runOnUiThread {
+					var processing_error = calc.processCurrencyData(data)
+					if (processing_error.length > 0) {
+						showToast(processing_error)
+					}
+				}
 			}
 		}
 	}
@@ -129,6 +141,8 @@ class MainActivity : AppCompatActivity() {
 		return true
 	}
 
+	@Deprecated("Deprecated in Java")
+	@Suppress("DEPRECATION")
 	override fun onBackPressed() {
 		if (lastTab == "numpad") {
 			saveSettings()
@@ -187,7 +201,7 @@ class MainActivity : AppCompatActivity() {
 		calc.setOption(CalcOpt.PercentLeavesY, prefs.getBoolean("PercentLeavesY", true))
 
 		if (calc.getOption(DispOpt.SaveBaseOnExit)) {
-			calc.setStatusBase(prefs.getString("SavedBase", "DEC"))
+			calc.setStatusBase(prefs.getString("SavedBase", "DEC") ?: "DEC")
 		}
 		else {
 			calc.setStatusBase("DEC")
@@ -198,7 +212,7 @@ class MainActivity : AppCompatActivity() {
 		var cMap: MutableMap<String, Double> = mutableMapOf()
 		for (key in vs.keys) {
 			if (key.startsWith("VARSTORE-")) {
-				var value = prefs.getString(key, "0.0")
+				var value = prefs.getString(key, "0.0") ?: "0.0"
 				vMap[key.drop(9)] = A(value)
 			}
 			else if (key.startsWith("CURRENCY-")) {
@@ -207,7 +221,7 @@ class MainActivity : AppCompatActivity() {
 				cMap[key.drop(9)] = value
 			}
 			else if (key == "CURRENCYDATE") {
-				calc.last_currency_date = prefs.getString(key, "")
+				calc.last_currency_date = prefs.getString(key, "") ?: ""
 			}
 		}
 		calc.loadVarStore(vMap.toMap())
@@ -300,7 +314,7 @@ class MainActivity : AppCompatActivity() {
 
 		for (index in 0..(stackSize-1)) {
 			/* Bypass history stuff */
-			var lv = prefs.getString("SavedStack-%03d".format(index), "0.0")
+			var lv = prefs.getString("SavedStack-%03d".format(index), "0.0") ?: "0.0"
 			var v: AF = A(lv)
 			calc.st.push(v)
 		}
@@ -332,6 +346,13 @@ class MainActivity : AppCompatActivity() {
 		var t = Toast.makeText(this, fromHtml(html), len)
 		t.setGravity(Gravity.TOP or Gravity.CENTER_HORIZONTAL, 0, 0)
 		t.show()
+	}
+
+	fun selector(title: String, items: List<String>, onClick: (DialogInterface, Int) -> Unit) {
+		AlertDialog.Builder(this)
+			.setTitle(title)
+			.setItems(items.toTypedArray(), onClick)
+			.show()
 	}
 
 	fun selectToUnit(category: String, from: String) {
@@ -665,7 +686,7 @@ class MainActivity : AppCompatActivity() {
 	@Suppress("DEPRECATION")
 	fun getIcon(v: Int): Drawable {
 		if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-			return getApplicationContext().getDrawable(v)
+			return getApplicationContext().getDrawable(v)!!
 		}
 		else {
 			return getResources().getDrawable(v)

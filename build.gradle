@@ -1,15 +1,4 @@
-buildscript {
-    repositories {
-        jcenter()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:2.3.3'
-    }
-}
-
-allprojects {
-    repositories {
-        jcenter()
-        maven { url "http://dl.bintray.com/kotlin/kotlin-dev" }
-    }
+plugins {
+    id 'com.android.application' version '8.13.2' apply false
+    id 'org.jetbrains.kotlin.android' version '2.2.21' apply false
 }
