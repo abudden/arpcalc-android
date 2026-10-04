@@ -75,11 +75,23 @@ These two screenshots show the configuration options available in the applicatio
 
 This software is released under the GPL.  See [LICENCE.md](LICENCE.md) for more details.
 
-## Docker Compilation
+## Building with Docker
 
-The release builds are compiled with docker-compose.
+The app can be built and tested in Docker, so the Android SDK doesn't need to be installed locally.  All that's needed is Docker with the Compose plugin.
 
-To build the docker containers on a Linux system, run `docker-compose build`.  The code can then be compiled with `docker-compose up`.
+```
+./docker-build.sh
+```
+
+This builds the build image (JDK, Android SDK and the Python tooling used by the tests) the first time it's run, then builds a debug APK and runs the unit tests.  Any other Gradle tasks can be given instead, for example `./docker-build.sh assembleRelease` or `./docker-build.sh build`.
+
+* The debug APK ends up in `app/phone/build/outputs/apk/debug/` and the test report in `app/phone/build/reports/tests/`.
+* The build runs as your own user, so the output files aren't owned by root.
+* Gradle's downloads and the debug signing key are kept in a Docker volume (`gradle-cache`), so later builds are much quicker and debug APKs can be installed over each other.  `docker compose down -v` removes it.
+
+`docker compose up` also works, running the same build as user 1000.
+
+Release builds are signed with a keystore that isn't part of this repository.  Without `keystore.properties`, `assembleRelease` produces an unsigned APK.  The formal releases use `docker compose up kotlin_arpcalc_build` (see `pull_build_and_website.sh`), which clones the keystore from a local Mercurial repository and builds a signed release.
 
 Formal releases are tagged with the Mercurial repository changeset.  Building from the github version will use a git changeset instead.
 

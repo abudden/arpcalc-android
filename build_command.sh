@@ -8,7 +8,6 @@ else
 fi
 cd /home/al/project
 bash /home/al/keystore/make_keystore_props.bash
-echo "sdk.dir=$ANDROID_HOME" > local.properties
 ./gradlew --stacktrace clean build assembleRelease
 RESULT=$?
 rm keystore.properties

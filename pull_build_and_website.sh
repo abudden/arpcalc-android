@@ -14,7 +14,7 @@ then
 
 	rm -f ${webdir}/kotlin-arpcalc-*.apk
 	rm -f ${webdir}/karpcalc.apk
-	cp app/phone/build/outputs/apk/phone-release.apk ${webdir}/kotlin-arpcalc-release-${datestr}-${revid}.apk
+	cp app/phone/build/outputs/apk/release/phone-release.apk ${webdir}/kotlin-arpcalc-release-${datestr}-${revid}.apk
 	cp ${webdir}/kotlin-arpcalc-release-${datestr}-${revid}.apk ${webdir}/karpcalc.apk
 
 	echo "APK copied to website - ${datestr} ; ${revid}"

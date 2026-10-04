@@ -1,7 +1,27 @@
-version: "2"
+# Docker build environment: see "Building with Docker" in README.md.
 services:
-    kotlin_arpcalc_build:
+    # General build: ./docker-build.sh [gradle tasks...], or "docker compose up"
+    # (docker-build.sh replaces the user with your own uid/gid)
+    build:
         build: dockerfiles/kotlin
+        image: arpcalc-android-build
+        user: "1000:1000"
         volumes:
             - ./:/home/al/project
+            - gradle-cache:/cache
+
+    # Signed release build (used by pull_build_and_website.sh).  Only runs when
+    # named explicitly: "docker compose up kotlin_arpcalc_build"
+    kotlin_arpcalc_build:
+        profiles: ["release"]
+        build: dockerfiles/kotlin
+        image: arpcalc-android-build
+        user: "1000:1000"
+        entrypoint: ["bash", "build_command.sh"]
+        volumes:
+            - ./:/home/al/project
+            - gradle-cache:/cache
             - /home/vcs/mercurial/development/software/other/development/keystore:/vcs/keystore
+
+volumes:
+    gradle-cache:

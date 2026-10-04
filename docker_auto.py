@@ -1,11 +1,11 @@
 # Artifacts to store when performing automatic build.
 artifacts = [
         {
-            'source': 'app/phone/build/outputs/apk/phone-release.apk',
+            'source': 'app/phone/build/outputs/apk/release/phone-release.apk',
             'dest': 'karpcalc.apk',
             },
         {
-            'source': 'app/phone/build/outputs/apk/phone-release.apk',
+            'source': 'app/phone/build/outputs/apk/release/phone-release.apk',
             'dest': 'kotlin-arpcalc-release-{date}-{changeset}.apk',
             },
         {
@@ -25,7 +25,7 @@ artifacts = [
             'dest': 'kotlin-arpcalc-server-release-{date}-{changeset}.jar',
             },
         {
-            'source': 'app/phone/build/reports/lint-results.html',
+            'source': 'app/phone/build/reports/lint-results-debug.html',
             'dest': 'android-lint-results.html',
             },
         ]
