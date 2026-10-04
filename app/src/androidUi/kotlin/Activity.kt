@@ -302,10 +302,18 @@ class MainActivity : AppCompatActivity() {
 
 		var prefs = getPreferences(0)
 		var edit = prefs.edit()
+		/* Remove entries left over from a previously larger stack */
+		for (key in prefs.getAll().keys) {
+			if (key.startsWith("SavedStack-")) {
+				edit.remove(key)
+			}
+		}
 		edit.putInt("SavedStackLength", storeStack.size)
 		for ((index, value) in storeStack.withIndex()) {
 			edit.putString("SavedStack-%03d".format(index), value.toString())
 		}
+		/* commit() rather than apply(): onBackPressed exits straight after this */
+		edit.commit()
 	}
 
 	fun restoreStack() {
