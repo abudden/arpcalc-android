@@ -23,6 +23,7 @@ enum class ErrorCode {
 	NoFunction,
 	NoHistorySaved,
 	NotImplemented,
+	OutOfRange,
 }
 
 enum class BitCount {

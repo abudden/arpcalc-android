@@ -141,7 +141,7 @@ fun Stack.convertLitresPer100KMToKilometresPerLitre(): ErrorCode {
 
 fun Stack.convertDayOfYearToDateInCurrentYear(): ErrorCode {
 	var dayofyear = this.pop()
-	if ((dayofyear < 0) || (dayofyear > 365)) {
+	if ((dayofyear < 1) || (dayofyear >= 367)) {
 		this.push(dayofyear)
 		return ErrorCode.InvalidConversion
 	}
@@ -158,8 +158,14 @@ fun Stack.convertDayOfYearToDateInCurrentYear(): ErrorCode {
 		year = c.get(Calendar.YEAR)
 	}
 
-	var yearObj = Year.of(year)
-	var ld: LocalDate = yearObj.atDay(dayofyear_i)
+	var ld: LocalDate
+	try {
+		/* Day 366 is only valid in a leap year */
+		ld = Year.of(year).atDay(dayofyear_i)
+	} catch (e: java.time.DateTimeException) {
+		this.push(dayofyear)
+		return ErrorCode.InvalidConversion
+	}
 
 	var dom: Int = ld.getDayOfMonth()
 	var m: Int = ld.getMonthValue()
@@ -177,6 +183,11 @@ fun Stack.convertDayOfYearToDateInCurrentYear(): ErrorCode {
 
 fun Stack.convertDateInCurrentYearToDayOfYear(): ErrorCode {
 	var xval = this.pop()
+	/* toInt() would wrap round for a huge number (rather than failing) */
+	if ((xval < 1) || (xval >= 32)) {
+		this.push(xval)
+		return ErrorCode.InvalidConversion
+	}
 
 	var date_form = xval;
 

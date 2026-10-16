@@ -99,6 +99,11 @@ fun Stack.percentchange(): ErrorCode {
 	 */
 	var x = this.pop()
 	var y = this.pop()
+	if (y == A(0.0)) {
+		this.push(y)
+		this.push(x)
+		return ErrorCode.DivideByZero
+	}
 	if (options.contains(CalcOpt.PercentLeavesY)) {
 		this.push(y)
 	}

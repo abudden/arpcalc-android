@@ -37,20 +37,24 @@ class AF(value: BigDecimal) {
 	operator fun unaryMinus() : AF {
 		return this.value.unaryMinus().toAF()
 	}
+	/* Rounded to the working precision (as divide always was): exact
+	 * results can need any number of digits (e.g. 1e500000 + 1), which
+	 * makes everything after them slow.
+	 */
 	operator fun minus(b: AF) : AF {
-		return this.value.subtract(b.value).toAF()
+		return this.value.subtract(b.value, mc).toAF()
 	}
 	operator fun minus(b: Double) : AF {
 		return this.minus(b.toAF())
 	}
 	operator fun times(b: AF) : AF {
-		return this.value.multiply(b.value).toAF()
+		return this.value.multiply(b.value, mc).toAF()
 	}
 	operator fun times(b: Double) : AF {
 		return this.times(b.toAF())
 	}
 	operator fun plus(b: AF) : AF {
-		return this.value.add(b.value).toAF()
+		return this.value.add(b.value, mc).toAF()
 	}
 	operator fun plus(b: Double) : AF {
 		return this.plus(b.toAF())
@@ -62,6 +66,13 @@ class AF(value: BigDecimal) {
 		return this.div(b.toAF())
 	}
 	operator fun rem(b: AF) : AF {
+		/* The remainder is exact, so needs the whole of the quotient: with
+		 * a huge quotient that takes practically forever.
+		 */
+		if ((this.value.signum() != 0) && (b.value.signum() != 0)
+				&& ((this.exponent10() - b.exponent10()) > 10000)) {
+			throw ArithmeticException("Remainder out of range")
+		}
 		return this.value.remainder(b.value).toAF()
 	}
 	operator fun rem(b: Double) : AF {
@@ -71,30 +82,70 @@ class AF(value: BigDecimal) {
 	fun remainder(b: AF) = this.rem(b)
 	fun remainder(b: Double) = this.rem(b)
 
+	/* Rounding a huge number would write out all of its digits (which can
+	 * take practically forever), but it's already an integer.
+	 */
+	fun isInteger() = (this.value.scale() <= 0)
+
 	fun round() : AF {
+		if (this.isInteger()) {
+			return this
+		}
 		return this.value.setScale(0, BigDecimal.ROUND_HALF_UP).toAF()
 	}
 	fun floor() : AF {
+		if (this.isInteger()) {
+			return this
+		}
 		return this.value.setScale(0, BigDecimal.ROUND_FLOOR).toAF()
 	}
 	fun ceil(): AF {
+		if (this.isInteger()) {
+			return this
+		}
 		return this.value.setScale(0, BigDecimal.ROUND_CEILING).toAF()
 	}
 	fun pow(x: AF) : AF {
+		/* The result would be beyond BigDecimal's range (10^±2,147,483,647)
+		 * and big-math can take practically forever to find that out.
+		 */
+		if ((this.value.signum() != 0) && (x.abs() > A(1000))
+				&& ((this.abs().log10() * x).abs() > A(2.1e9))) {
+			throw ArithmeticException("Power out of range")
+		}
 		return BigDecimalMath.pow(this.value, x.value, this.context).toAF()
 	}
 
+	/* The power of ten in this number (as in scientific notation) */
+	fun exponent10(): Long = this.value.precision().toLong() - this.value.scale().toLong() - 1
+
 	fun sqrt() : AF {
-		return BigDecimalMath.sqrt(this.value, this.context).toAF()
+		return this.root(2)
 	}
 	fun cbrt() : AF {
-		return this.root(3.0)
+		return this.root(3)
 	}
 	fun root(p: AF) : AF {
+		if ((p.isInteger()) && (p.abs() <= A(1000))) {
+			return this.root(p.toInt())
+		}
 		return BigDecimalMath.root(this.value, p.value, this.context).toAF()
 	}
 	fun root(p: Double) : AF {
-		return BigDecimalMath.root(this.value, p.toAF().value, this.context).toAF()
+		return this.root(p.toAF())
+	}
+	/* big-math's root takes practically forever for very large or very
+	 * small numbers, so take out a power of ten that's a multiple of p and
+	 * do that part exactly.
+	 */
+	fun root(p: Int) : AF {
+		if ((p <= 0) || (this.value.signum() == 0)) {
+			return BigDecimalMath.root(this.value, BigDecimal(p), this.context).toAF()
+		}
+		val shift = Math.floorDiv(this.exponent10(), p.toLong()) * p
+		val scaled = this.value.scaleByPowerOfTen(-shift.toInt())
+		val r = BigDecimalMath.root(scaled, BigDecimal(p), this.context)
+		return r.scaleByPowerOfTen((shift / p).toInt()).round(this.context).toAF()
 	}
 
 	fun cos() = BigDecimalMath.cos(this.value, this.context).toAF()
@@ -104,9 +155,35 @@ class AF(value: BigDecimal) {
 	fun asin() = BigDecimalMath.asin(this.value, this.context).toAF()
 	fun atan() = BigDecimalMath.atan(this.value, this.context).toAF()
 
-	fun cosh() = BigDecimalMath.cosh(this.value, this.context).toAF()
-	fun sinh() = BigDecimalMath.sinh(this.value, this.context).toAF()
-	fun tanh() = BigDecimalMath.tanh(this.value, this.context).toAF()
+	/* big-math's hyperbolic functions take practically forever for large
+	 * arguments (seconds for 1000, much longer for 10,000).  Beyond 100, e^-x
+	 * is too small to make a difference at this precision, so use e^x / 2
+	 * (and tanh is just +/-1).
+	 */
+	fun cosh() : AF {
+		if (this.abs() > A(100)) {
+			return (e().pow(this.abs()) / 2.0)
+		}
+		return BigDecimalMath.cosh(this.value, this.context).toAF()
+	}
+	fun sinh() : AF {
+		if (this > A(100)) {
+			return (e().pow(this) / 2.0)
+		}
+		else if (this < A(-100)) {
+			return -(e().pow(-this) / 2.0)
+		}
+		return BigDecimalMath.sinh(this.value, this.context).toAF()
+	}
+	fun tanh() : AF {
+		if (this > A(100)) {
+			return A(1)
+		}
+		else if (this < A(-100)) {
+			return A(-1)
+		}
+		return BigDecimalMath.tanh(this.value, this.context).toAF()
+	}
 	fun acosh() = BigDecimalMath.acosh(this.value, this.context).toAF()
 	fun asinh() = BigDecimalMath.asinh(this.value, this.context).toAF()
 	fun atanh() = BigDecimalMath.atanh(this.value, this.context).toAF()
@@ -114,11 +191,34 @@ class AF(value: BigDecimal) {
 	fun abs() : AF {
 		return this.value.abs().toAF()
 	}
+	/* big-math's logs go via a Double, so fail for numbers too large or
+	 * too small for one (beyond about 1e±308).  Take out the power of ten
+	 * first: log(m * 10^e) = log(m) + e * log(10).
+	 */
 	fun log(): AF {
-		return BigDecimalMath.log(this.value, mc).toAF()
+		return this.logWithBase(false)
 	}
 	fun log10() : AF {
-		return BigDecimalMath.log10(this.value, mc).toAF()
+		return this.logWithBase(true)
+	}
+	private fun logWithBase(base10: Boolean): AF {
+		val e10 = this.exponent10()
+		if ((this.value.signum() <= 0) || (Math.abs(e10) < 300)) {
+			if (base10) {
+				return BigDecimalMath.log10(this.value, mc).toAF()
+			}
+			return BigDecimalMath.log(this.value, mc).toAF()
+		}
+		val mc2 = MathContext(mc.precision + 20)
+		val mantissa = this.value.scaleByPowerOfTen(-e10.toInt())
+		val result = if (base10) {
+			BigDecimalMath.log10(mantissa, mc2).add(BigDecimal(e10))
+		}
+		else {
+			BigDecimalMath.log(mantissa, mc2).add(
+					BigDecimal(e10).multiply(BigDecimalMath.log(BigDecimal.TEN, mc2)))
+		}
+		return result.round(mc).toAF()
 	}
 
 	fun toDouble(): Double {

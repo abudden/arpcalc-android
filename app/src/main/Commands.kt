@@ -1,5 +1,7 @@
 package uk.co.cgtk.karpcalc
 
+import java.math.BigInteger
+
 import java.util.Scanner
 import java.util.zip.ZipInputStream
 
@@ -153,13 +155,13 @@ class CommandHandler(
 			}
 		}
 		else if (dspBase == DisplayBase.baseHexadecimal) {
-			dspState.enteredValue = dspState.enteredText.toLong(16).toAF()
+			dspState.enteredValue = BigInteger(dspState.enteredText, 16).toBigDecimal().toAF()
 		}
 		else if (dspBase == DisplayBase.baseBinary) {
-			dspState.enteredValue = dspState.enteredText.toLong(2).toAF()
+			dspState.enteredValue = BigInteger(dspState.enteredText, 2).toBigDecimal().toAF()
 		}
 		else if (dspBase == DisplayBase.baseOctal) {
-			dspState.enteredValue = dspState.enteredText.toLong(8).toAF()
+			dspState.enteredValue = BigInteger(dspState.enteredText, 8).toBigDecimal().toAF()
 		}
 		else {
 			/* ??? */
@@ -267,7 +269,8 @@ class CommandHandler(
 	fun backspace() {
 		if (dspState.entering && ( ! dspState.justPressedEnter)) {
 			var l = dspState.enteredText.length
-			if ( l == 1 ) {
+			/* Nothing left but a minus sign (from "-1") isn't a number */
+			if ((l <= 1) || ((l == 2) && dspState.enteredText.startsWith("-"))) {
 				clearButton()
 			}
 			else {
@@ -578,6 +581,27 @@ class CommandHandler(
 	}
 
 	fun keypress(key: String) : ErrorCode {
+		/* BigDecimal can't represent infinity, so a result that's too large
+		 * (or too small) throws: put everything back as it was and report
+		 * it rather than crashing.
+		 */
+		val savedStack = st.stack.toList()
+		val savedState = dspState.copy()
+		try {
+			return keypressUnchecked(key)
+		}
+		catch (e: Exception) {
+			/* NumberFormatException is from converting an infinite Double */
+			if ((e !is ArithmeticException) && (e !is NumberFormatException)) {
+				throw e
+			}
+			st.stack = savedStack.toMutableList()
+			dspState = savedState
+			return ErrorCode.OutOfRange
+		}
+	}
+
+	private fun keypressUnchecked(key: String) : ErrorCode {
 		var handled = true
 		dspState.showAll = false
 		if (key != "base") {
@@ -840,7 +864,11 @@ class CommandHandler(
 		var realnumber: AF = value
 		var places: Int = dspOptions.decimalPlaces
 
-		if ((absolute != A(0.0)) && (getOption(DispOpt.BinaryPrefixes))) {
+		/* Powers of two beyond about 2^±2,000,000,000 are out of range, so
+		 * use powers of ten for numbers that large or small.
+		 */
+		if ((absolute != A(0.0)) && (getOption(DispOpt.BinaryPrefixes))
+				&& (Math.abs(absolute.exponent10()) < 500000000)) {
 			var binExpNegMinDisplay =
 				Math.floor(Math.log10(Math.pow(10.0, dspOptions.expNegMinDisplay.toDouble()))/Math.log10(2.0))
 			var binExpPosMaxDisplay =
@@ -1170,7 +1198,8 @@ class CommandHandler(
 					}
 					else if (currency != null) {
 						var f = entry.trim().toDoubleOrNull()
-						if (f != null) {
+						/* A zero rate would give an infinite conversion */
+						if ((f != null) && f.isFinite() && (f > 0.0)) {
 							values.put(currency, f)
 						}
 					}
