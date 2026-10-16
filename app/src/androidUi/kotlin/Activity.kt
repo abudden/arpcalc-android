@@ -241,6 +241,7 @@ class MainActivity : AppCompatActivity() {
 		calc.setOption(DispOpt.AmericanUnits, prefs.getBoolean("AmericanUnits", false))
 		calc.setOption(DispOpt.EuropeanDecimal, prefs.getBoolean("EuropeanDecimal", false))
 		calc.setOption(DispOpt.ShowHelpOnStart, prefs.getBoolean("ShowHelpOnStart", true))
+		calc.setOption(DispOpt.ClassicLayout, prefs.getBoolean("ClassicLayout", false))
 
 		calc.setPlaces(prefs.getInt("DecimalPlaces", 7))
 
@@ -303,6 +304,7 @@ class MainActivity : AppCompatActivity() {
 		edit.putBoolean("AmericanUnits", calc.getOption(DispOpt.AmericanUnits))
 		edit.putBoolean("EuropeanDecimal", calc.getOption(DispOpt.EuropeanDecimal))
 		edit.putBoolean("ShowHelpOnStart", calc.getOption(DispOpt.ShowHelpOnStart))
+		edit.putBoolean("ClassicLayout", calc.getOption(DispOpt.ClassicLayout))
 
 		edit.putInt("DecimalPlaces", calc.getPlaces())
 

@@ -42,7 +42,8 @@ enum class DispOpt {
 	DecimalBaseBias,
 	AmericanUnits,
 	EuropeanDecimal,
-	ShowHelpOnStart
+	ShowHelpOnStart,
+	ClassicLayout
 	// If adding any here, make sure they're added to getDispOptionByName
 	// and the various settings saving places.
 }
@@ -701,6 +702,8 @@ class CommandHandler(
 			"bitwisenot"                 -> st::bitwisenot
 			"bitwiseor"                  -> st::bitwiseor
 			"bitwisexor"                 -> st::bitwisexor
+			"shiftleft"                  -> st::shiftleft
+			"shiftright"                 -> st::shiftright
 			"twoscomp"                   -> st::twoscomplement
 			"ceiling"                    -> st::ceiling
 			"pi"                         -> { completeEntering(false) ; return st.constant("Pi") }
