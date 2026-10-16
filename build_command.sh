@@ -8,7 +8,7 @@ else
 fi
 cd /home/al/project
 bash /home/al/keystore/make_keystore_props.bash
-./gradlew --stacktrace clean build assembleRelease
+./gradlew --stacktrace clean build assembleRelease bundleRelease
 RESULT=$?
 rm keystore.properties
 exit ${RESULT}

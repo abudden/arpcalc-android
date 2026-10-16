@@ -7,6 +7,8 @@ import android.content.ClipData
 import android.content.Context
 import android.content.DialogInterface
 import android.content.SharedPreferences
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import android.graphics.drawable.Drawable
@@ -65,7 +67,14 @@ class MainActivity : AppCompatActivity() {
 	}
 
 	override fun onCreate(savedInstanceState: Bundle?) {
+		enableEdgeToEdge()
 		super.onCreate(savedInstanceState)
+		/* Android 16 ignores onBackPressed() (predictive back) */
+		onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+			override fun handleOnBackPressed() {
+				backPressed()
+			}
+		})
 		mainUI = MainActivityUi()
 		mainUI.setContentView(this)
 
@@ -122,9 +131,12 @@ class MainActivity : AppCompatActivity() {
 
 			if (data != null) {
 				runOnUiThread {
-					var processing_error = calc.processCurrencyData(data)
-					if (processing_error.length > 0) {
-						showToast(processing_error)
+					/* The download can finish after the user has left the app */
+					if (! isFinishing) {
+						var processing_error = calc.processCurrencyData(data)
+						if (processing_error.length > 0) {
+							showToast(processing_error)
+						}
 					}
 				}
 			}
@@ -141,13 +153,11 @@ class MainActivity : AppCompatActivity() {
 		return true
 	}
 
-	@Deprecated("Deprecated in Java")
-	@Suppress("DEPRECATION")
-	override fun onBackPressed() {
+	fun backPressed() {
 		if (lastTab == "numpad") {
 			saveSettings()
 			saveStack()
-			java.lang.System.exit(0)
+			finish()
 		}
 		else {
 			cancelPressed()
@@ -312,7 +322,7 @@ class MainActivity : AppCompatActivity() {
 		for ((index, value) in storeStack.withIndex()) {
 			edit.putString("SavedStack-%03d".format(index), value.toString())
 		}
-		/* commit() rather than apply(): onBackPressed exits straight after this */
+		/* commit() rather than apply(): backPressed() finishes straight after this */
 		edit.commit()
 	}
 

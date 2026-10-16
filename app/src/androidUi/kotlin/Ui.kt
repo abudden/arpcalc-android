@@ -178,10 +178,11 @@ class MainActivityUi {
 		root.applyRecursively(::mainStyle)
 
 		/* Android 15+ draws apps edge-to-edge: keep the content clear of the
-		 * status and navigation bars.
+		 * status and navigation bars and any display cutout.
 		 */
 		ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
-			val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+			val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars()
+					or WindowInsetsCompat.Type.displayCutout())
 			v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
 			insets
 		}

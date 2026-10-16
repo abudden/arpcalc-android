@@ -1,6 +1,10 @@
 # Artifacts to store when performing automatic build.
 artifacts = [
         {
+            'source': 'app/phone/build/outputs/bundle/release/phone-release.aab',
+            'dest': 'kotlin-arpcalc-release-{date}-{changeset}.aab',
+            },
+        {
             'source': 'app/phone/build/outputs/apk/release/phone-release.apk',
             'dest': 'karpcalc.apk',
             },

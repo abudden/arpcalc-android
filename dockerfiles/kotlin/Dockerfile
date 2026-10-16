@@ -4,9 +4,10 @@ FROM eclipse-temurin:21-jdk-noble
 
 LABEL maintainer="A. S. Budden <abudden@gmail.com>"
 
-# Keep these in step with compileSdk in app/phone/build.gradle
+# The platform must match compileSdk in app/phone/build.gradle, and the build
+# tools the Android Gradle Plugin's default (35.0.0 for AGP 8.13)
 ARG ANDROID_CMDLINE_TOOLS=16111833
-ARG ANDROID_PLATFORM=android-35
+ARG ANDROID_PLATFORM=android-36
 ARG ANDROID_BUILD_TOOLS=35.0.0
 
 # mercurial is for build_command.sh (keystore clone) and changeset.py

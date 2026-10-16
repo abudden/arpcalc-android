@@ -13,3 +13,6 @@ keystore.properties
 .qmake.stash
 *_plugin_import.cpp
 .hg
+app/phone/unit_export.txt
+app/phone/conversion_tests.txt
+__pycache__
