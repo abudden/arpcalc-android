@@ -33,10 +33,10 @@ RUN mkdir -p ${ANDROID_HOME}/cmdline-tools \
 		"platforms;${ANDROID_PLATFORM}" "build-tools;${ANDROID_BUILD_TOOLS}" \
 	&& chmod -R a+rX ${ANDROID_HOME}
 
-# ConversionTest runs src/test/generate_conversion_tests.py, which needs an old
-# pint: newer releases dropped some of the unit names it uses (e.g. "btu").
+# ConversionTest runs src/test/generate_conversion_tests.py, which checks the
+# conversions against pint
 RUN python3 -m venv /opt/pyenv \
-	&& /opt/pyenv/bin/pip install --no-cache-dir "pint==0.9" "setuptools<70"
+	&& /opt/pyenv/bin/pip install --no-cache-dir "pint==0.26.1"
 ENV PATH=/opt/pyenv/bin:${PATH}
 
 # The container runs as the host user (see docker-build.sh), who may not own
