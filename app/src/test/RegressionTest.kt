@@ -186,4 +186,71 @@ public class RegressionTest {
 			Locale.setDefault(saved)
 		}
 	}
+
+	/* The identities used for large and tiny arguments agree with big-math
+	 * where it works, and the extremes are quick and don't overflow
+	 */
+	fun close(expected: AF, actual: AF) {
+		val diff = (expected - actual).abs()
+		val scale = expected.abs()
+		assertTrue("expected $expected, got $actual",
+				(diff == A(0)) || (diff <= scale * A("1e-30")))
+	}
+
+	@Test(timeout = 20000)
+	fun inverseTrigIdentities() {
+		for (v in listOf("1.5", "2", "-3", "10", "12345.678", "-1e30")) {
+			close(ch.obermuhlner.math.big.BigDecimalMath.atan(A(v).value, mc).toAF(), A(v).atan())
+		}
+		for (v in listOf("1e21", "3.5e25", "1e40")) {
+			close(ch.obermuhlner.math.big.BigDecimalMath.asinh(A(v).value, mc).toAF(), A(v).asinh())
+			close(ch.obermuhlner.math.big.BigDecimalMath.acosh(A(v).value, mc).toAF(), A(v).acosh())
+		}
+		/* big-math loses digits for negative arguments (x + sqrt(x² + 1)
+		 * nearly cancels), so compare with -asinh(|x|)
+		 */
+		for (v in listOf("-0.5", "-2", "-1e10")) {
+			close(-ch.obermuhlner.math.big.BigDecimalMath.asinh(A(v).abs().value, mc).toAF(), A(v).asinh())
+		}
+		/* (big-math gives 0 for some of these: it works to a number of
+		 * decimal places rather than significant figures)
+		 */
+		for (v in listOf("1e-41", "-3e-50")) {
+			close(A(v), A(v).atan())
+			close(A(v), A(v).asin())
+			close(A(v), A(v).atanh())
+			close(A(v), A(v).asinh())
+			close((pi() / 2.0) - A(v), A(v).acos())
+		}
+
+		val halfPi = pi() / 2.0
+		close(halfPi, A("1e1000000").atan())
+		close(-halfPi, A("-1e999999999").atan())
+		close(A("1e-999999999"), A("1e-999999999").atan())
+		close(A("1e-999999999"), A("1e-999999999").asin())
+		close(halfPi, A("1e-999999999").acos())
+		/* ln(2 * 10^1000000) = 1000000 ln(10) + ln(2) */
+		val ln2x = A(1000000) * ch.obermuhlner.math.big.BigDecimalMath.log(java.math.BigDecimal.TEN, mc).toAF() +
+				ch.obermuhlner.math.big.BigDecimalMath.log(java.math.BigDecimal(2), mc).toAF()
+		close(ln2x, A("1e1000000").asinh())
+		close(-ln2x, A("-1e1000000").asinh())
+		close(ln2x, A("1e1000000").acosh())
+		val ln2xMax = A(999999999) * ch.obermuhlner.math.big.BigDecimalMath.log(java.math.BigDecimal.TEN, mc).toAF() +
+				ch.obermuhlner.math.big.BigDecimalMath.log(java.math.BigDecimal(2), mc).toAF()
+		close(ln2xMax, A("1e999999999").asinh())
+
+		for ((v, r) in listOf(Pair("1e-1000000", listOf(0, 0, 1)), Pair("-1e-1000000", listOf(0, -1, 0)),
+				Pair("0.004", listOf(0, 0, 1)), Pair("-0.004", listOf(0, -1, 0)),
+				Pair("0.4", listOf(0, 0, 1)), Pair("-0.6", listOf(-1, -1, 0)))) {
+			assertEquals(A(r[0]), A(v).round())
+			assertEquals(A(r[1]), A(v).floor())
+			assertEquals(A(r[2]), A(v).ceil())
+		}
+
+		val ch = CommandHandler()
+		ch.st.push(A("2"))
+		ch.st.push(A("1e-1000000"))
+		assertEquals(ErrorCode.NoError, ch.keypress("inversetan2"))
+		close(A(90), ch.st.pop())
+	}
 }
