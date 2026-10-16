@@ -133,7 +133,15 @@ class MainActivity : AppCompatActivity() {
 				runOnUiThread {
 					/* The download can finish after the user has left the app */
 					if (! isFinishing) {
-						var processing_error = calc.processCurrencyData(data)
+						/* The download might not be what we expect (e.g. a
+						 * Wi-Fi login page), so don't let it crash the app.
+						 */
+						var processing_error = try {
+							calc.processCurrencyData(data)
+						} catch (e: Exception) {
+							Log.w(TAG, "Failed to read currency data", e)
+							"Cannot read currency data"
+						}
 						if (processing_error.length > 0) {
 							showToast(processing_error)
 						}
@@ -545,6 +553,7 @@ class MainActivity : AppCompatActivity() {
 				ErrorCode.UnknownConversion  -> showToast("Unknown conversion error")
 				ErrorCode.InvalidConversion  -> showToast("Conversion error")
 				ErrorCode.UnknownSI          -> showToast("Unknown SI unit")
+				ErrorCode.OutOfRange         -> showToast("Result out of range")
 				else                         -> {}
 			}
 
