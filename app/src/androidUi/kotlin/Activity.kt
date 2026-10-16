@@ -125,12 +125,17 @@ class MainActivity : AppCompatActivity() {
 
 	/* ARPCalc Sans (Noto Sans with the arrows and maths symbols from Noto
 	 * Sans Math, as in the desktop version: see fonts/OFL.txt) has every
-	 * character the app shows, so it looks the same on every phone.
+	 * character the app shows, so it looks the same on every phone.  The
+	 * buttons use its medium weight, as Android's own buttons do.
 	 */
 	fun useAppFont(v: View) {
 		val font = ResourcesCompat.getFont(this, R.font.arpcalc_sans) ?: return
+		val buttonFont = ResourcesCompat.getFont(this, R.font.arpcalc_sans_medium) ?: font
 		fun apply(v: View) {
-			if (v is TextView) {
+			if (v is Button) {
+				v.typeface = buttonFont
+			}
+			else if (v is TextView) {
 				v.typeface = font
 			}
 			if (v is ViewGroup) {

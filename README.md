@@ -75,7 +75,7 @@ These two screenshots show the configuration options available in the applicatio
 
 This software is released under the GPL.  See [LICENCE.md](LICENCE.md) for more details.
 
-The built-in font, ARPCalc Sans ([app/src/androidUi/res/font/arpcalc_sans.ttf](app/src/androidUi/res/font/arpcalc_sans.ttf)), is made from Noto Sans and Noto Sans Math by `tools/make_font.py` in the [desktop version](https://github.com/abudden/arpcalc-desktop) (which uses the same font) and is licensed under the SIL Open Font License 1.1: see [fonts/OFL.txt](fonts/OFL.txt).
+The built-in font, ARPCalc Sans ([app/src/androidUi/res/font/arpcalc_sans.ttf](app/src/androidUi/res/font/arpcalc_sans.ttf)), is made from Noto Sans and Noto Sans Math by `tools/make_font.py` in the [desktop version](https://github.com/abudden/arpcalc-desktop) (which uses the same font) and is licensed under the SIL Open Font License 1.1: see [fonts/OFL.txt](fonts/OFL.txt).  The buttons use its medium weight ([arpcalc_sans_medium.ttf](app/src/androidUi/res/font/arpcalc_sans_medium.ttf), made by the same script from Noto Sans Medium).
 
 ## Building with Docker
 
