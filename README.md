@@ -75,6 +75,8 @@ These two screenshots show the configuration options available in the applicatio
 
 This software is released under the GPL.  See [LICENCE.md](LICENCE.md) for more details.
 
+The built-in font, ARPCalc Sans ([app/src/androidUi/res/font/arpcalc_sans.ttf](app/src/androidUi/res/font/arpcalc_sans.ttf)), is made from Noto Sans and Noto Sans Math by `tools/make_font.py` in the [desktop version](https://github.com/abudden/arpcalc-desktop) (which uses the same font) and is licensed under the SIL Open Font License 1.1: see [fonts/OFL.txt](fonts/OFL.txt).
+
 ## Building with Docker
 
 The app can be built and tested in Docker, so the Android SDK doesn't need to be installed locally.  All that's needed is Docker with the Compose plugin.

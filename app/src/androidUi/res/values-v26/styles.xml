@@ -1,0 +1,8 @@
+<resources>
+    <!-- The calculator's own views are given ARPCalc Sans in code (see
+         MainActivity.useAppFont), which also works before Android 8; this
+         does the same for dialogs (Android 8 and later). -->
+    <style name="Theme.ARPCalc" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:fontFamily">@font/arpcalc_sans</item>
+    </style>
+</resources>

@@ -11,12 +11,14 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.res.ResourcesCompat
 import android.graphics.drawable.Drawable
 import android.text.Html
 import android.text.Spanned
 import android.util.Log
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.GridLayout
 import android.widget.ImageView
@@ -101,6 +103,7 @@ class MainActivity : AppCompatActivity() {
 		restoreStack()
 
 		createOptPad()
+		useAppFont(findViewById(android.R.id.content))
 
 		cancelPressed()
 		updateDisplays()
@@ -109,6 +112,25 @@ class MainActivity : AppCompatActivity() {
 			showToast("Long-press any key for help")
 		}
 		getCurrencyData()
+	}
+
+	/* ARPCalc Sans (Noto Sans with the arrows and maths symbols from Noto
+	 * Sans Math, as in the desktop version: see fonts/OFL.txt) has every
+	 * character the app shows, so it looks the same on every phone.
+	 */
+	fun useAppFont(v: View) {
+		val font = ResourcesCompat.getFont(this, R.font.arpcalc_sans) ?: return
+		fun apply(v: View) {
+			if (v is TextView) {
+				v.typeface = font
+			}
+			if (v is ViewGroup) {
+				for (i in 0 until v.childCount) {
+					apply(v.getChildAt(i))
+				}
+			}
+		}
+		apply(v)
 	}
 
 	fun getCurrencyData() {
