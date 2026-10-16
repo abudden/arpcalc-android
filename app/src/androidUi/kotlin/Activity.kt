@@ -7,7 +7,9 @@ import android.content.ClipData
 import android.content.Context
 import android.content.DialogInterface
 import android.content.SharedPreferences
+import android.graphics.Color
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -69,7 +71,14 @@ class MainActivity : AppCompatActivity() {
 	}
 
 	override fun onCreate(savedInstanceState: Bundle?) {
-		enableEdgeToEdge()
+		/* The calculator is always dark, so always use light status bar
+		 * icons and no scrim behind the navigation bar (the default follows
+		 * the phone's light/dark setting, which gave a light navigation bar
+		 * and dark, hard to read, status bar icons on a phone set to light)
+		 */
+		enableEdgeToEdge(
+			statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+			navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT))
 		super.onCreate(savedInstanceState)
 		/* Android 16 ignores onBackPressed() (predictive back) */
 		onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
