@@ -9,4 +9,5 @@
 cd "$(dirname "$0")" || exit 1
 uid=${SUDO_UID:-$(id -u)}
 gid=${SUDO_GID:-$(id -g)}
-exec docker compose run --rm --build --user "$uid:$gid" build "$@"
+# FUZZ_SEEDS and FUZZ_STEPS (if set) are for FuzzTest: see README.md
+exec docker compose run --rm --build --user "$uid:$gid" -e FUZZ_SEEDS -e FUZZ_STEPS build "$@"

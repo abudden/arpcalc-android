@@ -95,4 +95,14 @@ Release builds are signed with a keystore that isn't part of this repository.  W
 
 Formal releases are tagged with the Mercurial repository changeset.  Building from the github version will use a git changeset instead.
 
+### Tests
+
+The unit tests (in `app/src/test`) run as part of the default build.  As well as tests of particular calculations, there are:
+
+* `FuzzTest`: presses random buttons (weighted towards clear and backspace), changes options and checks every display, failing with the presses that led up to any crash or hang.  It was ported from the [desktop version](https://github.com/abudden/arpcalc-desktop)'s `tests/fuzz_core.cpp`.  It runs 20 sequences of 2000 presses by default: for more, run e.g. `FUZZ_SEEDS=300 ./docker-build.sh testDebugUnitTest --tests '*FuzzTest*'`.
+* `ExtremeValuesTest`: every button and display with very large and very small numbers.
+* `RegressionTest`: things that used to crash or hang.
+
+The desktop version has the tests of particular calculations (ported to C++) in `tests/run_tests.sh`, and the original of `FuzzTest` in `tests/run_fuzz.sh`.
+
 <!-- vim: set ft=pandoc : -->
