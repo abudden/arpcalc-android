@@ -6,7 +6,7 @@ LABEL maintainer="A. S. Budden <abudden@gmail.com>"
 
 # The platform must match compileSdk in app/phone/build.gradle, and the build
 # tools the Android Gradle Plugin's default (35.0.0 for AGP 8.13)
-ARG ANDROID_CMDLINE_TOOLS=16111833
+ARG ANDROID_CMDLINE_TOOLS=13114758
 ARG ANDROID_PLATFORM=android-36
 ARG ANDROID_BUILD_TOOLS=35.0.0
 
@@ -30,7 +30,7 @@ RUN mkdir -p ${ANDROID_HOME}/cmdline-tools \
 	&& rm /tmp/cmdline-tools.zip \
 	&& yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null \
 	&& ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager \
-		"platforms;${ANDROID_PLATFORM}" "build-tools;${ANDROID_BUILD_TOOLS}" \
+		"platforms;${ANDROID_PLATFORM}" "build-tools;${ANDROID_BUILD_TOOLS}" "platform-tools" \
 	&& chmod -R a+rX ${ANDROID_HOME}
 
 # ConversionTest runs src/test/generate_conversion_tests.py, which checks the

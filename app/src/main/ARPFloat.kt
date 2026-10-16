@@ -2,6 +2,7 @@ package uk.co.cgtk.karpcalc
 
 import java.math.BigDecimal
 import java.math.MathContext
+import java.math.RoundingMode
 import ch.obermuhlner.math.big.BigDecimalMath
 
 // TODO: Consider changing this to UNLIMITED
@@ -100,7 +101,7 @@ class AF(value: BigDecimal) {
 		if (this.isSmall()) {
 			return A(0)
 		}
-		return this.value.setScale(0, BigDecimal.ROUND_HALF_UP).toAF()
+		return this.value.setScale(0, RoundingMode.HALF_UP).toAF()
 	}
 	fun floor() : AF {
 		if (this.isInteger()) {
@@ -109,7 +110,7 @@ class AF(value: BigDecimal) {
 		if (this.isSmall()) {
 			return A(if (this.value.signum() > 0) 0 else -1)
 		}
-		return this.value.setScale(0, BigDecimal.ROUND_FLOOR).toAF()
+		return this.value.setScale(0, RoundingMode.FLOOR).toAF()
 	}
 	fun ceil(): AF {
 		if (this.isInteger()) {
@@ -118,7 +119,7 @@ class AF(value: BigDecimal) {
 		if (this.isSmall()) {
 			return A(if (this.value.signum() > 0) 1 else 0)
 		}
-		return this.value.setScale(0, BigDecimal.ROUND_CEILING).toAF()
+		return this.value.setScale(0, RoundingMode.CEILING).toAF()
 	}
 	fun pow(x: AF) : AF {
 		/* The result would be beyond BigDecimal's range (10^±2,147,483,647)
@@ -139,7 +140,7 @@ class AF(value: BigDecimal) {
 		if ((this.value.scale() <= places) || (this.exponent10() > 100)) {
 			return this
 		}
-		return this.value.setScale(places, BigDecimal.ROUND_HALF_UP).toAF()
+		return this.value.setScale(places, RoundingMode.HALF_UP).toAF()
 	}
 
 	/* The power of ten in this number (as in scientific notation) */

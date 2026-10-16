@@ -13,45 +13,45 @@ if (haveKeystore) {
 }
 
 android {
-    namespace 'uk.co.cgtk.karpcalc'
-    compileSdk 36
+    namespace = 'uk.co.cgtk.karpcalc'
+    compileSdk = 36
 
     defaultConfig {
-        applicationId "uk.co.cgtk.karpcalc"
-        minSdk 25
-        targetSdk 36
-        versionCode 14
-        versionName "1.4"
+        applicationId = "uk.co.cgtk.karpcalc"
+        minSdk = 25
+        targetSdk = 36
+        versionCode = 14
+        versionName = "1.4"
     }
 
     lint {
-        abortOnError false
+        abortOnError = false
     }
 
     compileOptions {
         // Conversion.kt uses java.time, which needs desugaring below API 26
-        coreLibraryDesugaringEnabled true
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        coreLibraryDesugaringEnabled = true
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     signingConfigs {
         if (haveKeystore) {
             release {
-                keyAlias keystoreProperties["keyAlias"]
-                keyPassword keystoreProperties["keyPassword"]
-                storeFile file(keystoreProperties["storeFile"])
-                storePassword keystoreProperties["storePassword"]
+                keyAlias = keystoreProperties["keyAlias"]
+                keyPassword = keystoreProperties["keyPassword"]
+                storeFile = file(keystoreProperties["storeFile"])
+                storePassword = keystoreProperties["storePassword"]
             }
         }
     }
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled = false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), '../proguard-rules.pro'
             if (haveKeystore) {
-                signingConfig signingConfigs.release
+                signingConfig = signingConfigs.release
             }
         }
     }
@@ -82,7 +82,7 @@ dependencies {
 }
 
 def versionInfo = tasks.register('versionInfo', Exec) {
-    workingDir rootProject.file('app')
+    workingDir = rootProject.file('app')
     commandLine 'python3', 'changeset.py'
 }
 
