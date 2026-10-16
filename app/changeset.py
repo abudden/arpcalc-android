@@ -17,7 +17,8 @@ this_dir = os.path.abspath(os.path.dirname(__file__))
 outfile = os.path.join(this_dir, 'src/main/RevisionInfo.kt')
 
 try:
-    p = subprocess.run(['hg', 'id', '-i'], stdout=subprocess.PIPE)
+    p = subprocess.run(['hg', 'id', '-i'], stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL, check=True)
     changeset = s(p.stdout).strip()
 except (subprocess.CalledProcessError, FileNotFoundError):
     # hg wasn't found or didn't work.  Try git
