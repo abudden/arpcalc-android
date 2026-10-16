@@ -339,7 +339,6 @@ class MainActivity : AppCompatActivity() {
 			BitCount.bc16 -> edit.putInt("BitCount", 16)
 			BitCount.bc32 -> edit.putInt("BitCount", 32)
 			BitCount.bc64 -> edit.putInt("BitCount", 64)
-			else -> edit.putInt("BitCount", 32)
 		}
 
 		edit.commit()
