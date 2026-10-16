@@ -579,9 +579,13 @@ fun Stack.convertHoursToHms(): ErrorCode {
 		parthours = hours - x
 		sign = -1
 	}
-	minutes = parthours * A("60")
+	/* The hours are rounded (e.g. 3:56 is 3.9333...), so the minutes can
+	 * come out as 55.999... or the seconds as 59.999...: round them well
+	 * beyond anything typed in before taking the floor or carrying.
+	 */
+	minutes = (parthours * A("60")).roundToPlaces(20)
 	seconds = minutes - minutes.floor()
-	seconds *= A("60.0")
+	seconds = (seconds * A("60.0")).roundToPlaces(18)
 	minutes = minutes.floor()
 	while (seconds >= A("60.0")) {
 		seconds -= A("60.0")
@@ -610,7 +614,8 @@ fun Stack.convertHoursToHm(): ErrorCode {
 		parthours = hours - x
 		sign = -1
 	}
-	minutes = parthours * A("60.0")
+	/* As in convertHoursToHms: 29.999... minutes should be 30 */
+	minutes = (parthours * A("60.0")).roundToPlaces(20)
 	while (minutes >= A("60.0")) {
 		minutes -= A("60.0")
 		hours += sign.toAF()

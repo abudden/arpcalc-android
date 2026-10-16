@@ -116,6 +116,17 @@ class AF(value: BigDecimal) {
 		return BigDecimalMath.pow(this.value, x.value, this.context).toAF()
 	}
 
+	/* Rounded to a number of decimal places, e.g. so that minutes worked
+	 * out as 55.999... (from rounding in an earlier division) are 56 before
+	 * taking the floor.  A huge number has no digits that far down.
+	 */
+	fun roundToPlaces(places: Int) : AF {
+		if ((this.value.scale() <= places) || (this.exponent10() > 100)) {
+			return this
+		}
+		return this.value.setScale(places, BigDecimal.ROUND_HALF_UP).toAF()
+	}
+
 	/* The power of ten in this number (as in scientific notation) */
 	fun exponent10(): Long = this.value.precision().toLong() - this.value.scale().toLong() - 1
 
