@@ -87,9 +87,18 @@ class AF(value: BigDecimal) {
 	 */
 	fun isInteger() = (this.value.scale() <= 0)
 
+	/* Rounding a tiny number (e.g. 1e-1000000) would also write out all of
+	 * its digits; anything below 0.01 rounds to 0, or for floor and ceil
+	 * to -1 or 1 depending on its sign.
+	 */
+	private fun isSmall() = (this.value.signum() != 0) && (this.exponent10() < -2)
+
 	fun round() : AF {
 		if (this.isInteger()) {
 			return this
+		}
+		if (this.isSmall()) {
+			return A(0)
 		}
 		return this.value.setScale(0, BigDecimal.ROUND_HALF_UP).toAF()
 	}
@@ -97,11 +106,17 @@ class AF(value: BigDecimal) {
 		if (this.isInteger()) {
 			return this
 		}
+		if (this.isSmall()) {
+			return A(if (this.value.signum() > 0) 0 else -1)
+		}
 		return this.value.setScale(0, BigDecimal.ROUND_FLOOR).toAF()
 	}
 	fun ceil(): AF {
 		if (this.isInteger()) {
 			return this
+		}
+		if (this.isSmall()) {
+			return A(if (this.value.signum() > 0) 1 else 0)
 		}
 		return this.value.setScale(0, BigDecimal.ROUND_CEILING).toAF()
 	}
@@ -162,9 +177,38 @@ class AF(value: BigDecimal) {
 	fun cos() = BigDecimalMath.cos(this.value, this.context).toAF()
 	fun sin() = BigDecimalMath.sin(this.value, this.context).toAF()
 	fun tan() = BigDecimalMath.tan(this.value, this.context).toAF()
-	fun acos() = BigDecimalMath.acos(this.value, this.context).toAF()
-	fun asin() = BigDecimalMath.asin(this.value, this.context).toAF()
-	fun atan() = BigDecimalMath.atan(this.value, this.context).toAF()
+	/* big-math's inverse functions take time in proportion to the size of
+	 * the argument's exponent (seconds for 1e1000000) and overflow or
+	 * underflow near BigDecimal's limits, so use identities that are exact
+	 * at this precision: for |x| > 1, atan(x) = ±π/2 - atan(1/x); and below
+	 * 1e-40, atan(x), asin(x) and the inverse hyperbolic sine and tangent are
+	 * x (the next term is x³/3, 80 digits further down).
+	 */
+	private fun isTiny() = (this.value.signum() != 0) && (this.exponent10() < -40)
+
+	fun acos() : AF {
+		if (this.isTiny()) {
+			return (pi() / 2.0) - this
+		}
+		return BigDecimalMath.acos(this.value, this.context).toAF()
+	}
+	fun asin() : AF {
+		if (this.isTiny()) {
+			return this
+		}
+		return BigDecimalMath.asin(this.value, this.context).toAF()
+	}
+	fun atan() : AF {
+		if (this.isTiny()) {
+			return this
+		}
+		if (this.abs() > A(1)) {
+			val halfPi = pi() / 2.0
+			val sign = if (this.value.signum() > 0) halfPi else -halfPi
+			return sign - (A(1) / this).atan()
+		}
+		return BigDecimalMath.atan(this.value, this.context).toAF()
+	}
 
 	/* big-math's hyperbolic functions take practically forever for large
 	 * arguments (seconds for 1000, much longer for 10,000).  Beyond 100, e^-x
@@ -195,9 +239,33 @@ class AF(value: BigDecimal) {
 		}
 		return BigDecimalMath.tanh(this.value, this.context).toAF()
 	}
-	fun acosh() = BigDecimalMath.acosh(this.value, this.context).toAF()
-	fun asinh() = BigDecimalMath.asinh(this.value, this.context).toAF()
-	fun atanh() = BigDecimalMath.atanh(this.value, this.context).toAF()
+	/* For x > 1e20, acosh(x) and asinh(x) are ln(2x) (the next term is
+	 * 1/(4x²), 40 digits further down); asinh(-x) is -asinh(x).
+	 */
+	fun acosh() : AF {
+		if (this > A("1e20")) {
+			return (this * 2.0).log()
+		}
+		return BigDecimalMath.acosh(this.value, this.context).toAF()
+	}
+	fun asinh() : AF {
+		if (this.value.signum() < 0) {
+			return -((-this).asinh())
+		}
+		if (this.isTiny()) {
+			return this
+		}
+		if (this > A("1e20")) {
+			return (this * 2.0).log()
+		}
+		return BigDecimalMath.asinh(this.value, this.context).toAF()
+	}
+	fun atanh() : AF {
+		if (this.isTiny()) {
+			return this
+		}
+		return BigDecimalMath.atanh(this.value, this.context).toAF()
+	}
 
 	fun abs() : AF {
 		return this.value.abs().toAF()
