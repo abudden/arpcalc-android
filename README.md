@@ -104,7 +104,8 @@ The unit tests (in `app/src/test`) run as part of the default build.  As well as
 * `FuzzTest`: presses random buttons (weighted towards clear and backspace), changes options and checks every display, failing with the presses that led up to any crash or hang.  It was ported from the [desktop version](https://github.com/abudden/arpcalc-desktop)'s `tests/fuzz_core.cpp`.  It runs 20 sequences of 2000 presses by default: for more, run e.g. `FUZZ_SEEDS=300 ./docker-build.sh testDebugUnitTest --tests '*FuzzTest*'`.
 * `ExtremeValuesTest`: every button and display with very large and very small numbers.
 * `RegressionTest`: things that used to crash or hang.
+* `HmsTest`: arithmetic in hours/degrees, minutes and seconds as it's done on the calculator: type a value such as `12.8622` (12 hours, 86 minutes and 22 seconds, i.e. 13:26:22), convert it to hours, add or subtract another, and convert back.  It checks hand-picked cases and 2000 random ones of each of H.MMSS, D.MMSS and D.MM against answers worked out in whole hundredths of a second; set `HMS_CASES` for more.
 
-The desktop version has the tests of particular calculations (ported to C++) in `tests/run_tests.sh`, and the original of `FuzzTest` in `tests/run_fuzz.sh`.
+The desktop version has the tests of particular calculations (ported to C++) and the same H.MMSS tests in `tests/run_tests.sh`, and the original of `FuzzTest` in `tests/run_fuzz.sh`.
 
 <!-- vim: set ft=pandoc : -->
