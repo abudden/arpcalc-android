@@ -212,6 +212,39 @@ fun Stack.bitwisenot(): ErrorCode {
 	this.push(xl.toAF())
 	return ErrorCode.NoError
 }
+/* X shifted left (or right) by Y bits, within the bit count, e.g. with 32
+ * bits 0x4265 << 1 is 0x84CA and 0x80000001 << 1 is 0x2.  A negative Y
+ * shifts the other way.
+ */
+fun Stack.shift(left: Boolean): ErrorCode {
+	var xl = round(this.pop()).toLong()
+	var y = round(this.pop())
+	var mask = this.getBitMask()
+	xl = xl and mask
+	if (y < 0) {
+		return this.shift(xl.toAF(), -y, ! left)
+	}
+	return this.shift(xl.toAF(), y, left)
+}
+private fun Stack.shift(x: AF, bits: AF, left: Boolean): ErrorCode {
+	var xl = x.toLong()
+	var mask = this.getBitMask()
+	/* Shifting a Long by 64 or more would wrap round */
+	if (bits >= 64) {
+		xl = 0
+	}
+	else if (left) {
+		xl = xl shl bits.toInt()
+	}
+	else {
+		xl = xl ushr bits.toInt()
+	}
+	xl = xl and mask
+	this.push(xl.toAF())
+	return ErrorCode.NoError
+}
+fun Stack.shiftleft() = this.shift(true)
+fun Stack.shiftright() = this.shift(false)
 fun Stack.twoscomplement(): ErrorCode {
 	var xl = round(this.pop()).toLong()
 	var mask = this.getBitMask()

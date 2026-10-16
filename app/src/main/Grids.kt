@@ -205,6 +205,14 @@ fun CommandHandler.getOptions(): Map<String, Option> {
 			{ this.getCheckIcon(this.getOption(DispOpt.EuropeanDecimal)) },
 			OptLoc(1, 2, 3)
 		),
+		"Classic Keypad Layout" to Option(
+			"""Use the keypad layout from before version 1.4: RAND and EXP on the main buttons rather than EXP and
+			y<sup><small>x</small></sup>, and &radic;x and y<sup><small>x</small></sup> on the functions page rather than
+			the bit shifts (x &lt;&lt; y and x &gt;&gt; y).""",
+			{ this.toggleOption(DispOpt.ClassicLayout) },
+			{ this.getCheckIcon(this.getOption(DispOpt.ClassicLayout)) },
+			OptLoc(1, 5, 0)
+		),
 		"Decimal Base Bias" to Option(
 			"""When set, the first press of "BASE" will change to decimal when in any other base.""",
 			{ this.toggleOption(DispOpt.DecimalBaseBias) },
@@ -248,8 +256,8 @@ fun CommandHandler.getGrid(grid: String) : List<List<BI>> {
 			),
 			mutableListOf(
 				BI("base", "BASE", "Switch between decimal, hexadecimal, binary and octal."),
-				BI("random", "RAND", "Push a random number onto the stack."),
 				BI("exponent", "EXP", "Add an exponent to the entered value."),
+				BI("power", "y<sup><small>x</small></sup>", "Raise Y to the power of X."),
 				BI("squareroot", "&radic;x", "Calculate the square-root of X."), // Available if needed as duplicated on funcpad
 				BI("reciprocal", "1/x", "Calculate the reciprocal of X."),
 				BI("divide", "&divide;", "Divide Y by X.")
@@ -285,6 +293,10 @@ fun CommandHandler.getGrid(grid: String) : List<List<BI>> {
 				BI("enter", "ENTER", "Push the entered value onto the stack.", doubleWidth = true)
 			)
 		)
+		if (getOption(DispOpt.ClassicLayout)) {
+			result[1][1] = BI("random", "RAND", "Push a random number onto the stack.")
+			result[1][2] = BI("exponent", "EXP", "Add an exponent to the entered value.")
+		}
 		if ( ! getOption(CalcOpt.SaveHistory)) {
 			result[4][0] = nop // remove undo if save history not set
 		}
@@ -320,6 +332,12 @@ fun CommandHandler.getGrid(grid: String) : List<List<BI>> {
 		else {
 			// stet
 		}
+		/* EXP does nothing except in decimal (and before, it was where the
+		 * hex digits go)
+		 */
+		if ((dspBase != DisplayBase.baseDecimal) && ( ! getOption(DispOpt.ClassicLayout))) {
+			result[1][1] = nop
+		}
 	}
 	else if ((grid == "funcpad") || (grid == "altfuncpad")) {
 		result = listOf(
@@ -340,17 +358,17 @@ fun CommandHandler.getGrid(grid: String) : List<List<BI>> {
 				BI("integerpart", "INT", "Remove the floating point part of X, leaving only the integer part - equivalent to FLOOR for X &gt; 0 or CEIL for X &lt; 0.")
 			),
 			mutableListOf(
-				BI("squareroot", "&radic;x", "Calculate the square-root of X."),
 				BI("cuberoot", "3&radic;x", "Calculate the cube-root of X."),
 				BI("xrooty", "x&radic;y", "Calculate the X-root of Y."),
+				BI("square", "x<sup><small>2</small></sup>", "Calculate X&times;X."),
 				BI("percent", "%", "Convert X to a percentage of Y."), // TODO: Check operation
 				BI("ceiling", "CEIL", "Round up to the nearest integer."),
 				BI("floatingpart", "FP", "Remove the integer part of X, leaving only the floating point part.")
 			),
 			mutableListOf(
-				BI("square", "x<sup><small>2</small></sup>", "Calculate X&times;X."),
+				BI("shiftleft", "x &lt;&lt; y", "Shift the integer part of X left by Y bits (within the bit count)."),
+				BI("shiftright", "x &gt;&gt; y", "Shift the integer part of X right by Y bits (within the bit count)."),
 				BI("cube", "x<sup><small>3</small></sup>", "Calculate X&times;X&times;X"),
-				BI("power", "y<sup><small>x</small></sup>", "Raise Y to the power of X."),
 				BI("twoscomp", "s2c", "Calculate the signed two's complement of X."),
 				BI("remainder", "REM", "Calculate the remainder after an integer division of Y / X."),
 				BI("integerdivide", "INTDIV", "Perform an integer division Y / X.")
@@ -372,6 +390,18 @@ fun CommandHandler.getGrid(grid: String) : List<List<BI>> {
 				BI("altmode", "ALT", "Show alternative functions (including hyperbolic trigonometry).")
 			)
 		)
+
+		if (getOption(DispOpt.ClassicLayout)) {
+			/* Before the shifts were added (and with the duplicates of the
+			 * square root and y^x on the main buttons)
+			 */
+			result[2][0] = BI("squareroot", "&radic;x", "Calculate the square-root of X.")
+			result[2][1] = BI("cuberoot", "3&radic;x", "Calculate the cube-root of X.")
+			result[2][2] = BI("xrooty", "x&radic;y", "Calculate the X-root of Y.")
+			result[3][0] = BI("square", "x<sup><small>2</small></sup>", "Calculate X&times;X.")
+			result[3][1] = BI("cube", "x<sup><small>3</small></sup>", "Calculate X&times;X&times;X")
+			result[3][2] = BI("power", "y<sup><small>x</small></sup>", "Raise Y to the power of X.")
+		}
 
 		if (grid == "altfuncpad") {
 			result[4][2] = BI("inversesinh", "sinh<sup><small>-1</small></sup>(x)", "Calculate the inverse hyperbolic sine of X.")
@@ -509,6 +539,10 @@ fun CommandHandler.getGrid(grid: String) : List<List<BI>> {
 			vres.last().add(nop)
 			colCount += 1
 			totalCount += 1
+		}
+		/* RAND at the end of the fifth row, apart from the constants */
+		if ((vres.size > 4) && (vres[4].size > 5) && (vres[4][5] === nop)) {
+			vres[4][5] = BI("random", "RAND", "Push a random number onto the stack.")
 		}
 		vres.last().add(BI("DensityByName", "Material Density", doubleWidth=true))
 		vres.last().add(BI("ConstByName", "Add By Name", doubleWidth=true))
