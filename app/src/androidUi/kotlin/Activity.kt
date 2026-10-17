@@ -192,7 +192,7 @@ class MainActivity : AppCompatActivity() {
 	}
 
 	fun showRevisionInfo(): Boolean {
-		showToast("ARPCalc Revision: ${RevisionInfo.changeset}")
+		showToast("ARPCalc ${RevisionInfo.version}")
 		return true
 	}
 
