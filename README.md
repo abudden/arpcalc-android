@@ -95,7 +95,12 @@ This builds the build image (JDK, Android SDK and the Python tooling used by the
 
 Release builds are signed with a keystore that isn't part of this repository.  Without `keystore.properties`, `assembleRelease` produces an unsigned APK.  The formal releases use `docker compose up kotlin_arpcalc_build` (see `pull_build_and_website.sh`), which clones the keystore from a local Mercurial repository and builds a signed release.
 
-Formal releases are tagged with the Mercurial repository changeset.  Building from the github version will use a git changeset instead.
+The version comes from the repository's latest tag (e.g. `v1.4.0`), as for the desktop version: [app/changeset.py](app/changeset.py) works it out when the build starts, using Mercurial (as for the formal releases) or otherwise git.
+
+* The versionName is `1.4.0` for a build of the tagged revision, or e.g. `1.4.0-2-5d2d15ff3cc4` for one two commits later.
+* The versionCode (which must go up with every release) is major × 10000 + minor × 100 + patch, e.g. 10400 for 1.4.0, so each release needs a new tag.
+* A long press on the base indicator (DEC) shows the version, e.g. `ARPCalc v1.4.0-2-5d2d15ff3cc4`, as the desktop version's "Copy version information" does.
+* Without a tag, or with neither Mercurial nor git (e.g. building from a copy of the source), the build still works, with versionCode 1 and the changeset (or "unknown") as the version.
 
 ### Tests
 

@@ -12,6 +12,16 @@ if (haveKeystore) {
     keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
 }
 
+// The version comes from the repository's latest tag (e.g. v1.4.0), as for
+// the desktop version: app/changeset.py works it out (and writes
+// RevisionInfo.kt) and prints the versionName and versionCode.
+def versionLines = providers.exec {
+    workingDir = rootProject.file('app')
+    commandLine 'python3', 'changeset.py'
+}.standardOutput.asText.get().readLines()
+def appVersionName = versionLines[0]
+def appVersionCode = versionLines[1].toInteger()
+
 android {
     namespace = 'uk.co.cgtk.karpcalc'
     compileSdk = 36
@@ -20,8 +30,8 @@ android {
         applicationId = "uk.co.cgtk.karpcalc"
         minSdk = 25
         targetSdk = 36
-        versionCode = 14
-        versionName = "1.4"
+        versionCode = appVersionCode
+        versionName = appVersionName
     }
 
     lint {
@@ -88,18 +98,9 @@ dependencies {
     testImplementation 'androidx.test:core:1.7.0'
 }
 
-def versionInfo = tasks.register('versionInfo', Exec) {
-    workingDir = rootProject.file('app')
-    commandLine 'python3', 'changeset.py'
-}
-
 tasks.withType(Test).configureEach {
     testLogging {
         showStandardStreams = true
         exceptionFormat = 'full'
     }
-}
-
-tasks.matching { it.name.startsWith('compile') && it.name.endsWith('Kotlin') }.configureEach {
-    dependsOn versionInfo
 }
