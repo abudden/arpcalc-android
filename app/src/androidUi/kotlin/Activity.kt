@@ -13,11 +13,14 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.AppCompatTextView
+import androidx.core.widget.TextViewCompat
 import androidx.core.content.res.ResourcesCompat
 import android.graphics.drawable.Drawable
 import android.text.Html
 import android.text.Spanned
 import android.util.Log
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -26,6 +29,7 @@ import android.widget.GridLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.Space
 import android.widget.TextView
 import android.widget.Toast
 import android.view.ViewGroup.LayoutParams
@@ -790,14 +794,39 @@ class MainActivity : AppCompatActivity() {
 	}
 
 	fun createOptPad() {
-		var optGrids: MutableList<GridLayout> = mutableListOf()
-		optGrids.add(GridLayout(this))
-		optGrids.add(GridLayout(this))
-
-		for (grid in optGrids) {
-			grid.setRowCount(6)
-			grid.setColumnCount(6)
-			grid.setLayoutParams(LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+		/* Each page is six rows, each with two options (an icon and its
+		 * label) side by side, each taking half of the width.  These are
+		 * fixed proportions (rather than a GridLayout, which sizes its
+		 * columns to fit their contents) so that with a larger font size the
+		 * labels wrap (and if need be shrink) rather than pushing everything
+		 * after the first column off the screen.
+		 */
+		val pages = List(2) { LinearLayout(this).apply { orientation = LinearLayout.VERTICAL } }
+		val halves = pages.map { page ->
+			List(6) {
+				val row = LinearLayout(this)
+				row.orientation = LinearLayout.HORIZONTAL
+				page.addView(row, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
+				List(2) {
+					val half = LinearLayout(this)
+					half.orientation = LinearLayout.HORIZONTAL
+					/* The icon (as wide as it is) and the label (the rest).
+					 * Space, as a plain View would take the whole width
+					 * where there's no icon.
+					 */
+					half.addView(Space(this), LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT))
+					half.addView(Space(this), LinearLayout.LayoutParams(0, LayoutParams.MATCH_PARENT, 1f))
+					row.addView(half, LinearLayout.LayoutParams(0, LayoutParams.MATCH_PARENT, 1f))
+					half
+				}
+			}
+		}
+		/* Put a view in one of a row's four slots (icon, label, icon, label) */
+		fun place(page: Int, row: Int, slot: Int, v: View) {
+			val half = halves[page][row][slot / 2]
+			val params = half.getChildAt(slot % 2).layoutParams
+			half.removeViewAt(slot % 2)
+			half.addView(v, slot % 2, params)
 		}
 
 		var optList = calc.getOptions()
@@ -805,67 +834,46 @@ class MainActivity : AppCompatActivity() {
 			if (detail.hideOnPhone) {
 				continue
 			}
-			var txtCol = detail.location.col
-			var imCol = detail.location.col
-			if (detail.location.col != GridLayout.UNDEFINED) {
-				txtCol += 1
-			}
+			/* Options are in column 0 (left) or 3 (right) of the six */
+			val slot = if (detail.location.col >= 3) 2 else 0
 
-			var txtColSpec = GridLayout.spec(txtCol, 2, GridLayout.LEFT, 0.16f)
-			var txtRowSpec = GridLayout.spec(detail.location.row, 1, GridLayout.CENTER, 0.16f)
-			var imColSpec = GridLayout.spec(imCol, 1, GridLayout.CENTER, 0.16f)
-			var imRowSpec = GridLayout.spec(detail.location.row, 1, GridLayout.CENTER, 0.16f)
-
-			var imParams = GridLayout.LayoutParams(imRowSpec, imColSpec)
 			var im = ImageView(this)
-			im.setLayoutParams(imParams)
+			im.scaleType = ImageView.ScaleType.CENTER_INSIDE
 			if (name != "BLANK") {
 				im.setOnClickListener( { optionClicked(name) } )
 				im.setOnLongClickListener( { optionHelp(name) } )
 			}
 			optIcons[name] = im
-			optGrids[detail.location.page].addView(im)
+			place(detail.location.page, detail.location.row, slot, im)
 
-			var txtParams = GridLayout.LayoutParams(txtRowSpec, txtColSpec)
-			var txt = TextView(this)
+			var txt = AppCompatTextView(this)
 			if (name != "BLANK") {
 				txt.setText(name)
 				txt.setOnClickListener( { optionClicked(name) } )
 				txt.setOnLongClickListener( { optionHelp(name) } )
 			}
-			txt.setTextSize(11f)
-			txt.setLayoutParams(txtParams)
-			optGrids[detail.location.page].addView(txt)
+			txt.gravity = Gravity.CENTER_VERTICAL or Gravity.LEFT
+			txt.setPadding((4 * resources.displayMetrics.density).toInt(), 0, 0, 0)
+			/* 11sp, but smaller if that won't fit (with a very large font size) */
+			TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(txt, 6, 11, 1, TypedValue.COMPLEX_UNIT_SP)
+			place(detail.location.page, detail.location.row, slot + 1, txt)
 		}
 
-		var moreColSpec = GridLayout.spec(4, 2, GridLayout.LEFT, 0.16f)
-		var moreRowSpec = GridLayout.spec(5, 1, GridLayout.CENTER, 0.16f)
-		var btnToOpt2 = Button(this)
-		btnToOpt2.setText("More...")
-		btnToOpt2.setTextSize(12f)
-		btnToOpt2.setAllCaps(false)
-		btnToOpt2.setPadding(0, 0, 0, 0)
-		var b2p = GridLayout.LayoutParams(moreRowSpec, moreColSpec)
-		b2p.setMargins(0,0,0,0)
-		b2p.setGravity(Gravity.FILL)
-		btnToOpt2.setLayoutParams(b2p)
-		btnToOpt2.setOnClickListener( { tabSelect("optpad2") } )
-		optGrids[0].addView(btnToOpt2)
+		/* "More..." and "Back..." where the right-hand label of the last row
+		 * would be
+		 */
+		for ((page, label, target) in listOf(Triple(0, "More...", "optpad2"), Triple(1, "Back...", "optpad1"))) {
+			var btn = Button(this)
+			btn.setText(label)
+			btn.setTextSize(12f)
+			btn.setAllCaps(false)
+			btn.setPadding(0, 0, 0, 0)
+			btn.setOnClickListener( { tabSelect(target) } )
+			place(page, 5, 3, btn)
+		}
 
-		var btnToOpt1 = Button(this)
-		btnToOpt1.setText("Back...")
-		btnToOpt1.setTextSize(12f)
-		btnToOpt1.setAllCaps(false)
-		btnToOpt1.setPadding(0, 0, 0, 0)
-		var b1p = GridLayout.LayoutParams(moreRowSpec, moreColSpec)
-		b1p.setMargins(0,0,0,0)
-		b1p.setGravity(Gravity.FILL)
-		btnToOpt1.setLayoutParams(b1p)
-		btnToOpt1.setOnClickListener( { tabSelect("optpad1") } )
-		optGrids[1].addView(btnToOpt1)
-
-		mainUI.lytOptionsPage1.addView(optGrids[0])
-		mainUI.lytOptionsPage2.addView(optGrids[1])
+		mainUI.lytOptionsPage1.addView(pages[0], LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+		mainUI.lytOptionsPage2.addView(pages[1], LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
 
 		updateOptionIcons()
 	}
